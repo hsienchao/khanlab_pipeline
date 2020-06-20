@@ -4,9 +4,8 @@ common:
     pipeline_version: "v0.1"
     emails: " -c chouh@nih.gov"
     juicer_jar: "/usr/local/apps/juicer/juicer-1.5.6/scripts/juicer_tools.jar"
-    prefix: "Sample_"
-    suffix_R1: "_R1.fastq.gz"
-    suffix_R2: "_R2.fastq.gz"
+    FASTQ_suffix_R1: "_R1.fastq.gz"
+    FASTQ_suffix_R2: "_R2.fastq.gz"
 cluster:
     small: "--partition=quick,norm    --time=03:00:00 --mem=02G  --cpus-per-task=1   --gres=lscratch:02"
     medium: "--partition=ccr,norm    --time=24:00:00 --mem=32G  --cpus-per-task=8  --gres=lscratch:05"

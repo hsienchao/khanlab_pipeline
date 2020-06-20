@@ -17,9 +17,8 @@ try:
     config["pipeline_home"] = pipeline_home
     config["work_dir"] = work_dir
         
-    prefix = config["common"]["prefix"]
-    suffix_R1 = config["common"]["suffix_R1"]
-    suffix_R2 = config["common"]["suffix_R2"]
+    suffix_R1 = config["common"]["FASTQ_suffix_R1"]
+    suffix_R2 = config["common"]["FASTQ_suffix_R2"]
 
     LIBRARIES = []
     #prepare targets
@@ -35,12 +34,15 @@ try:
     for library_id, library in samples.items():
         LIBRARIES.append(library_id)
         #add FASTQ targets
+        if not "SampleFiles" in library:
+            raise Exception('SampleFiles not found in sample sheet')
+        sample_file = library["SampleFiles"]
         FASTQS.append("DATA/" + library_id + "/" + library_id + suffix_R1)
         FASTQS.append("DATA/" + library_id + "/" + library_id + suffix_R2)
-        if not os.path.exists(data_dir + "/" + prefix + library_id + "/" + prefix + library_id + suffix_R1):
-            raise Exception(data_dir + "/" + prefix + library_id + "/" + prefix + library_id + suffix_R1 + ' not found')
-        if not os.path.exists(data_dir + "/" + prefix + library_id + "/" + prefix + library_id + suffix_R2):
-            raise Exception(data_dir + "/" + prefix + library_id + "/" + prefix + library_id + suffix_R2 + ' not found')
+        if not os.path.exists(data_dir + "/" + sample_file + "/" + sample_file + suffix_R1):
+            raise Exception(data_dir + "/" + sample_file + "/" + sample_file + suffix_R1 + ' not found')
+        if not os.path.exists(data_dir + "/" + sample_file + "/" + sample_file + suffix_R1):
+            raise Exception(data_dir + "/" + sample_file + "/" + sample_file + suffix_R1 + ' not found')
         #add HiC-Pro targets
         if not "Genome" in library:
             raise Exception('Genome not found in sample sheet')

@@ -21,7 +21,7 @@ if (`dirname $0` =~ /^\./){
 
 chomp $pipeline_home;
 
-=head1 SYNOPSIS
+my $usage = <<__EOUSAGE__;
 
 Usage:
 
@@ -29,22 +29,22 @@ $0 [options]
 
 required options:
 
-	-type|t		<string>	Pipeline type (available options: hic,chipseq,ranseq,dnaseq)
-	-workdir|w	<string>	Working directory where all the results will be stored.
-	-sheet|s	<string>	Sample sheet in YAML format
+  -type|t     <string>  Pipeline type (available options: hic,chipseq,ranseq,dnaseq)
+  -workdir|w  <string>  Working directory where all the results will be stored.
+  -sheet|s    <string>  Sample sheet in YAML format
 
 optional options:  
-	-datadir|d	<string>	FASTQ file location (default: $dataDir)
-	-dryrun					Dryrun only
-	-dag					Generate DAG PDF
+  -datadir|d  <string>  FASTQ file location (default: $data_dir)
+  -dryrun               Dryrun only
+  -dag                  Generate DAG PDF
 
 Example
   
   launch -type hic -workdir /data/khanlab/projects/HiC/pipeline_dev -s /data/khanlab/projects/HiC/pipeline_dev/samplesheet.yaml
 
-For questions or comments, please contact: Hsienchao Chou <chouh@nih.gov>
+For questions or comments, please contact: Hsienchao Chou <chouh\@nih.gov>
   
-=cut
+__EOUSAGE__
 
 GetOptions(
 		'dryrun'	=>\$dryrun,
@@ -54,9 +54,13 @@ GetOptions(
 		'workdir|w=s'   =>\$work_dir,
 		'sheet|s=s'   	=>\$sheet,
 		'help|h'      	=>\$help,
-	  )or pod2usage();
+	  );
 
-$help and pod2usage ();
+if ($help) {
+	print "$usage\n";
+	exit 0;
+}
+
 
 if (!$type || ($type ne "hic" && $type ne "chipseq" && $type ne "rnaseq" && $type ne "dnaseq")){
 	print STDERR "ERROR: must specify '-type'\n";
@@ -110,5 +114,4 @@ else{
 
 chomp $jobid;
 print "$jobid\t$sheet\t$pipeline_home\t$work_dir/pipeline.$type.${sheet_name}_$now.log\n" if $jobid;
-
 
