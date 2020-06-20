@@ -1,0 +1,4 @@
+%YAML 1.2
+---
+pipeline_version: "v0.1"
+emails: "-c chouh@nih.gov -c hsienchao.chou@gmail.com"

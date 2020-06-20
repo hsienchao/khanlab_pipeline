@@ -1,0 +1,215 @@
+import os
+import json
+
+
+try:
+    samples = config['samples']
+
+    data_dir = os.environ['DATA_DIR']
+    work_dir = os.environ['WORK_DIR']
+    pipeline_home = os.environ['PIPELINE_HOME']
+
+    configfile: pipeline_home +"/config/config.hic.yaml"
+
+    pipeline_version = config["common"]["pipeline_version"]
+    emails = config["common"]["emails"]
+
+    config["pipeline_home"] = pipeline_home
+    config["work_dir"] = work_dir
+        
+    prefix = config["common"]["prefix"]
+    suffix_R1 = config["common"]["suffix_R1"]
+    suffix_R2 = config["common"]["suffix_R2"]
+
+    LIBRARIES = []
+    #prepare targets
+    FASTQS = []
+    HICPRO_SCRIPTS = []
+    PAIRS = []
+    MERGED_PAIRS = []
+    PAIRS_AQUA = []
+    MERGED_PAIRS_AQUA = []
+    JUICEBOX_OUT = []
+    VIEWPOINT_OUT = []
+
+    for library_id, library in samples.items():
+        LIBRARIES.append(library_id)
+        #add FASTQ targets
+        FASTQS.append("DATA/" + library_id + "/" + library_id + suffix_R1)
+        FASTQS.append("DATA/" + library_id + "/" + library_id + suffix_R2)
+        if not os.path.exists(data_dir + "/" + prefix + library_id + "/" + prefix + library_id + suffix_R1):
+            raise Exception(data_dir + "/" + prefix + library_id + "/" + prefix + library_id + suffix_R1 + ' not found')
+        if not os.path.exists(data_dir + "/" + prefix + library_id + "/" + prefix + library_id + suffix_R2):
+            raise Exception(data_dir + "/" + prefix + library_id + "/" + prefix + library_id + suffix_R2 + ' not found')
+        #add HiC-Pro targets
+        if not "Genome" in library:
+            raise Exception('Genome not found in sample sheet')
+        config["ref_genome"] = library["Genome"]
+        if "SpikeIn" in library and library["SpikeIn"] == "yes":
+            #only add script targets once
+            if len(HICPRO_SCRIPTS) == 0:
+                if not "SpikeInGenome" in library:
+                    raise Exception('SpikeInGenome not found in sample sheet')
+                config["spike_in_genome"] = library["SpikeInGenome"]
+                HICPRO_SCRIPTS.append("HiCproAQuAOUTPUT/HiCPro_step1_" + library["SpikeInGenome"] + "_HiCpro.sh")
+                HICPRO_SCRIPTS.append("HiCproAQuAOUTPUT/HiCPro_step2_" + library["SpikeInGenome"] + "_HiCpro.sh")
+            PAIRS_AQUA.append("HiCproAQuAOUTPUT/hic_results/data/" + library_id + "/" + library_id + "_" + config[config["spike_in_genome"]]["bowtie2_index"] + ".bwt2pairs.validPairs")
+            MERGED_PAIRS_AQUA.append("HiCproAQuAOUTPUT/hic_results/data/" + library_id + "/" + library_id + ".allValidPairs")
+        PAIRS.append("HiCproOUTPUT/hic_results/data/" + library_id + "/" + library_id + "_" + config[config["ref_genome"]]["bowtie2_index"] + ".bwt2pairs.validPairs")
+        MERGED_PAIRS.append("HiCproOUTPUT/hic_results/data/" + library_id + "/" + library_id + ".allValidPairs")    
+        JUICEBOX_OUT.append(library_id + ".allValidPairs.hic")
+        VIEWPOINT_OUT.append("HiCproOUTPUT/hic_results/data/" + library_id + "/" + library_id + ".bedgraph")
+
+    HICPRO_SCRIPTS.append("HiCproOUTPUT/HiCPro_step1_" + config["ref_genome"] + "_HiCpro.sh")
+    HICPRO_SCRIPTS.append("HiCproOUTPUT/HiCPro_step2_" + config["ref_genome"] + "_HiCpro.sh")
+except Exception as err:
+    shell("echo 'HiC pipeline version {pipeline_version} has exception: reason " + str(err) + ". Samples: {LIBRARIES}. Working Dir:  {work_dir}' |mutt -e 'my_hdr From:chouh@nih.gov' -s 'Khanlab HiC Pipeline Status' `whoami`@mail.nih.gov {emails} ")
+    sys.exit(str(err))
+onerror:
+    shell("echo 'HiC pipeline version {pipeline_version} failed on Biowulf. Samples: {LIBRARIES}. Working Dir:  {work_dir}' |mutt -e 'my_hdr From:chouh@nih.gov' -s 'Khanlab HiC Pipeline Status' `whoami`@mail.nih.gov {emails} ")
+onstart:
+    shell("echo 'HiC pipeline version {pipeline_version} started on Biowulf. Samples: {LIBRARIES}. Working Dir:  {work_dir}' |mutt -e 'my_hdr From:chouh@nih.gov' -s 'Khanlab HiC Pipeline Status' `whoami`@mail.nih.gov {emails} ")
+onsuccess:
+    shell("echo 'HiC pipeline version {pipeline_version} finished on Biowulf. Samples: {LIBRARIES}. Working Dir:  {work_dir}' |mutt -e 'my_hdr From:chouh@nih.gov' -s 'Khanlab HiC Pipeline Status' `whoami`@mail.nih.gov {emails} ")
+    shell("touch {work_dir}/successful.txt;chgrp -R khanlab {work_dir}")
+    print("Workflow finished, no error")
+    
+localrules: HiCPro, prepareFASTQ, HiC_pipeline
+#print(FASTQS,HICPRO_SCRIPTS,PAIRS,MERGED_PAIRS,PAIRS_AQUA,MERGED_PAIRS_AQUA,JUICEBOX_OUT,VIEWPOINT_OUT)
+rule HiC_pipeline:
+    input: FASTQS,HICPRO_SCRIPTS,PAIRS,MERGED_PAIRS,PAIRS_AQUA,MERGED_PAIRS_AQUA,JUICEBOX_OUT
+
+rule makeViewPoint:
+    input:  
+            "HiCproOUTPUT/hic_results/data/{library}/{library}.allValidPairs"            
+    output: 
+            "HiCproOUTPUT/hic_results/data/{library}/{library}.bedgraph"
+    params:
+            fragment_bed=config[config["ref_genome"]]["fragment_bed"],
+            capture_bed=config[config["ref_genome"]]["capture_bed"],
+            rulename = "makeViewPoint",
+            batch    = config["cluster"]["medium"]
+    shell:
+            """
+            module load hicpro/2.11.1
+            make_viewpoints.py -i {input} -f {params.fragment_bed} -t {params.capture_bed} -e 1000 -v -o {output}
+            """
+
+rule HiCpro2Juicebox:
+    input: 
+            "HiCproOUTPUT/hic_results/data/{library}/{library}.allValidPairs"
+    output: 
+            "{library}.allValidPairs.hic"
+    params:
+            juicer_jar=config["common"]["juicer_jar"],
+            juicer_genome=config[config["ref_genome"]]["juicer_genome"],
+            rulename = "HiCpro2Juicebox",
+            batch    = config["cluster"]["medium"]
+    shell:
+            """            
+            module load hicpro/2.11.1
+            hicpro2juicebox.sh -i {input} -g {params.juicer_genome} -j {params.juicer_jar}
+            """
+
+rule HiCProAQuAStep2:
+    input: 
+            PAIRS_AQUA
+    output: 
+            MERGED_PAIRS_AQUA
+    params:
+            genome = lambda wildcards: config["spike_in_genome"] if "spike_in_genome" in config else "",
+            work_dir = config["work_dir"],
+            rulename = "HiCProAQuAStep2",
+            batch    = config["cluster"]["medium"]
+    shell:
+            """            
+            module load hicpro/2.11.1
+            sed -i 's/$SLURM_SUBMIT_DIR/HiCproAQuAOUTPUT/' HiCproAQuAOUTPUT/HiCPro_step2_{params.genome}_HiCpro.sh
+            bash HiCproAQuAOUTPUT/HiCPro_step2_{params.genome}_HiCpro.sh
+            """
+
+rule HiCProAQuAStep1:
+    input:
+            lambda wildcards: "HiCproAQuAOUTPUT/HiCPro_step1_" + config["spike_in_genome"] + "_HiCpro.sh"
+    output: 
+            PAIRS_AQUA
+    params:
+            genome = lambda wildcards: config["spike_in_genome"] if "spike_in_genome" in config else "",
+            work_dir = config["work_dir"],
+            rulename = "HiCProAQuAStep1",
+            batch    = config["cluster"]["large"]
+    shell:
+            """
+            module load hicpro/2.11.1
+            echo "start mm10 step1..."
+            pwd
+            cd HiCproAQuAOUTPUT
+            sed -i 's/$SLURM_SUBMIT_DIR\///' HiCPro_step1_{params.genome}_HiCpro.sh
+            bash HiCPro_step1_{params.genome}_HiCpro.sh
+            cd ..
+            echo "finished mm10 step1..."
+            """
+            
+rule HiCProStep2:
+    input:
+            PAIRS
+    output: 
+            MERGED_PAIRS
+    params:
+            genome = config["ref_genome"],
+            work_dir = config["work_dir"],
+            rulename = "HiCProStep2",
+            batch    = config["cluster"]["medium"]
+    shell:
+            """            
+            module load hicpro/2.11.1
+            sed -i 's/$SLURM_SUBMIT_DIR/HiCproOUTPUT/' HiCproOUTPUT/HiCPro_step2_{params.genome}_HiCpro.sh
+            bash HiCproOUTPUT/HiCPro_step2_{params.genome}_HiCpro.sh
+            cd ..
+            """
+
+rule HiCProStep1:
+    input: 
+            lambda wildcards: "HiCproOUTPUT/HiCPro_step1_" + config["ref_genome"] + "_HiCpro.sh"
+    output: 
+            PAIRS
+    params:
+            genome = config["ref_genome"],
+            work_dir = config["work_dir"],
+            rulename = "HiCProStep1",
+            batch    = config["cluster"]["large"]
+    shell:
+            """
+            module load hicpro/2.11.1
+            echo "start step1..."
+            pwd
+            cd HiCproOUTPUT
+            sed -i 's/$SLURM_SUBMIT_DIR\///' HiCPro_step1_{params.genome}_HiCpro.sh
+            bash HiCPro_step1_{params.genome}_HiCpro.sh
+            cd ..
+            """
+
+rule HiCPro:
+    input:
+            FASTQS
+    output: 
+            "{out_dir}/HiCPro_step1_{genome}_HiCpro.sh",
+            "{out_dir}/HiCPro_step2_{genome}_HiCpro.sh"
+    params:
+            config_file = lambda wildcards: config["pipeline_home"] + '/' + config[wildcards.genome]["hicpro_config"]
+    shell:
+            """
+            module load hicpro/2.11.1            
+            rm -rf {wildcards.out_dir}
+            HiC-Pro -i DATA/ -o {wildcards.out_dir}/ -c {params.config_file} -p
+            """
+
+rule prepareFASTQ:
+    input: 
+            lambda wildcards: data_dir + "/Sample_" + wildcards.library + "/Sample_" + wildcards.fastq + ".fastq.gz"
+    output: 
+            "DATA/{library}/{fastq}.fastq.gz",
+    shell:
+            """
+            ln -s {input} {output}
+            """

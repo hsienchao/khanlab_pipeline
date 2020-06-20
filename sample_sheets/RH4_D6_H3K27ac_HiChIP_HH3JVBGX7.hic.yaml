@@ -1,0 +1,34 @@
+samples:
+  RH4_D6_H3K27ac_HiChIP_HH3JVBGX7:
+    Amplified_Sample_Library_Name: RH4_D6_H3K27ac_HiChIP
+    Barcode: .
+    Batch_SRA: .
+    Case_Name: RH4_HiChIP_DMSO_v_Entinostat
+    ChIPtarget: H3K27ac
+    Chromatin: RH4_D6
+    CompareGroup: RH4_Ent6_H3K27ac_HiChIP
+    DataType: HiChIP
+    Date: !!python/object/apply:pandas._libs.tslibs.timestamps.Timestamp [1539129600000000000,
+      null, null]
+    Diagnosis: FP_Rhabdomyosarcoma
+    FlowCell_GSE: HH3JVBGX7
+    Function: Active enhancers
+    Genome: hg19
+    Index_ID: .
+    NegControl: .
+    PairedInput: .
+    Project: RMS_3D
+    SampleFiles: Sample_RH4_D6_H3K27ac_HiChIP_HH3JVBGX7
+    SampleGroup: RH4_D6_H3K27ac_HiChIP
+    SampleName: RH4_D6_H3K27ac
+    Sample_ID: RH4_D6_H3K27ac_HiChIP_HH3JVBGX7
+    Sample_Project: Project_Other_RMS_3D_SpikeIn
+    SpikeIn: 'yes'
+    SpikeInGenome: mm10
+    cell_line_s: RH4
+    chip_antibody_s: H3K27ac (Active Motif, 39133)
+    molecule: Biotinylated DNA
+    source_name_s: .
+    time_s: 6h
+    treatment_s: DMSO
+

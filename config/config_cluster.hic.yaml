@@ -1,0 +1,5 @@
+%YAML 1.2
+---
+cluster:
+    job_hicpro_step1: "--partition=quick,norm    --time=01:00:00 --mem=02G  --cpus-per-task=1   --gres=lscratch:02"
+    job_hicpro_step2: "--partition=ccr,norm    --time=12:00:00 --mem=32G  --cpus-per-task=16  --gres=lscratch:05"

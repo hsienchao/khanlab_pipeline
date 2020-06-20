@@ -1,0 +1,135 @@
+import os
+import json
+
+sample_json = json.load(open(config['General']['sample_sheet']))
+
+SAMPLES = sorted(sample_json.keys())
+FASTQS = {}
+BAMS = {}
+prefix = "Sample_"
+data_dir = config["General"]["home_dir"] + config["General"]["data_dir"]
+output_dir = config["General"]["output_dir"]
+
+TARGETS = []
+for sample in SAMPLES:
+	sample_fastqs = []
+	sample_bams = []
+	suffix_R1 = "_R1.fastq.gz"
+	for FCID in sample_json[sample]["FCID"]:
+		sample_fcid = prefix + sample + "_" + FCID
+		sample_fastqs.append(data_dir + "/" + sample_fcid + "/" + sample_fcid + suffix_R1)		
+		sample_bams.append(data_dir + "/" + sample + "/" + sample + ".bam")
+	FASTQS[sample] = sample_fastqs
+	BAMS[sample] = sample_bams
+	TARGETS.extend(sample_fastqs)
+	TARGETS.extend(sample_bams)
+
+TARGETS.extend(expand(output_dir + "/{sample}/fastqc/{sample}_R1.fastqc.html", sample=SAMPLES))
+TARGETS.extend(expand(output_dir + "/{sample}/{sample}.bam", sample=SAMPLES))
+TARGETS.extend(expand(output_dir + "/{sample}/{sample}.bai", sample=SAMPLES))
+TARGETS.extend(expand(output_dir + "/{sample}/{sample}.dd.bam", sample=SAMPLES))
+TARGETS.extend(expand(output_dir + "/{sample}/{sample}.dd.filtered.bam", sample=SAMPLES))
+TARGETS.extend(expand(output_dir + "/{sample}/{sample}.dd.filtered.spp.txt", sample=SAMPLES))
+TARGETS.extend(expand(output_dir + "/{sample}/MACS_Out/{sample}_peak.narrowPeak", sample=SAMPLES))
+TARGETS.extend(expand(output_dir + "/{sample}/MACS_Out/{sample}_peak.broadPeak", sample=SAMPLES))
+TARGETS.extend(expand(output_dir + "/{sample}/MACS_Out/{sample}_peak.narrowPeak.filtered.bed", sample=SAMPLES))
+TARGETS.extend(expand(output_dir + "/{sample}/MACS_Out/{sample}_peak.broadPeak.filtered.bed", sample=SAMPLES))
+TARGETS.extend(expand(output_dir + "/{sample}/MACS_Out/{sample}_peak.narrowPeak.annotation.txt", sample=SAMPLES))
+TARGETS.extend(expand(output_dir + "/{sample}/MACS_Out/{sample}_peak.broadPeak.annotation.txt", sample=SAMPLES))
+TARGETS.extend(expand(output_dir + "/{sample}/MACS_Out/{sample}_peak.narrowPeak.summit.bed", sample=SAMPLES))
+TARGETS.extend(expand(output_dir + "/{sample}/MACS_Out/{sample}_peak.broadPeak.summit.bed", sample=SAMPLES))
+TARGETS.extend(expand(output_dir + "/{sample}/MACS_Out/motif/knownResults.html", sample=SAMPLES))
+TARGETS.extend(expand(output_dir + "/{sample}/MACS_Out/ROSE_Out/{sample}_peaks_AllEnhancers.table.txt", sample=SAMPLES))
+TARGETS.extend(expand(output_dir + "/{sample}/MACS_Out/ROSE_Out/{sample}_peaks_nearest-genes.txt", sample=SAMPLES))
+TARGETS.extend(expand(output_dir + "/{sample}/MACS_Out/ROSE_Out/coltron/exp.txt", sample=SAMPLES))
+
+
+localrules: ChIPseq_pipeline, prepareFASTQ, HiC_pipeline, HiCProSplit, HiCProMerge
+
+rule ChIPseq_pipeline:
+	input: TARGETS
+	
+rule Coltron:
+	input: "{output_dir}/{sample}/MACS_Out/ROSE_Out/{sample}_peaks_AllEnhancers.table.txt"
+	output: "{output_dir}/{sample}/MACS_Out/ROSE_Out/coltron/exp.txt"	
+	shell:
+			"""
+			coltron -i {input} {output}
+			"""
+rule EDEN:
+	input: "{output_dir}/{sample}/MACS_Out/ROSE_Out/{sample}_peaks_AllEnhancers.table.txt"
+	output: "{output_dir}/{sample}/MACS_Out/ROSE_Out/{sample}_peaks_nearest-genes.txt"	
+	shell:
+			"""
+			EDEN.pl -i {input} {output}
+			"""
+			
+rule ROSE2:
+	input: "{output_dir}/{sample}/MACS_Out/{sample}_peak.narrowPeak.filtered.bed"
+	output: "{output_dir}/{sample}/MACS_Out/ROSE_Out/{sample}_peaks_AllEnhancers.table.txt"	
+	shell:
+			"""
+			ROSE2.sh -i {input} {output}
+			"""
+
+rule PeakAnnotation:
+	input: "{output_dir}/{sample}/MACS_Out/{sample}_peak.{peakType}Peak.filtered.bed"
+	output: "{output_dir}/{sample}/MACS_Out/{sample}_peak.{peakType}Peak.annotation.txt"				         
+	shell:
+			"""
+			annotatePeaks.pl -i {input} {output}
+			"""
+			
+rule FindMotif:
+	input: "{output_dir}/{sample}/MACS_Out/{sample}_peak.narrowPeak.summit.bed"
+	output: "{output_dir}/{sample}/MACS_Out/motif/knownResults.html"	
+	shell:
+			"""
+			annotatePeaks.pl -i {input} {output}
+			"""
+
+rule FilterPeaks:
+	input: "{output_dir}/{sample}/MACS_Out/{sample}_peak.{peakType}Peak"
+	output: "{output_dir}/{sample}/MACS_Out/{sample}_peak.{peakType}Peak.filtered.bed","{output_dir}/{sample}/MACS_Out/{sample}_peak.{peakType}Peak.summit.bed"
+	shell:
+			"""
+			filterPeaks.pl -i {input} {output}
+			"""
+
+rule CrossCorrelation:
+	input: "{output_dir}/{sample}/{sample}.dd.filtered.bam"
+	output: "{output_dir}/{sample}/{sample}.dd.filtered.spp.txt"
+	shell:
+			"""
+			spp.sh -i {input} {output}
+			"""
+rule MACS2:
+	input: "{output_dir}/{sample}/{sample}.dd.filtered.bam"
+	output: "{output_dir}/{sample}/MACS_Out/{sample}_peak{peakType}Peak"
+	shell:
+			"""
+			macs2.pl -i {input} {output}
+			"""
+			
+rule deDupFilter:
+	input: "{output_dir}/{sample}/{sample}.bam"
+	output: "{output_dir}/{sample}/{sample}.dd.bam","{output_dir}/{sample}/{sample}.dd.bai","{output_dir}/{sample}/{sample}.dd.filtered.bam","{output_dir}/{sample}/{sample}.dd.filtered.bai"
+	shell:
+			"""
+			picard.pl -i {input} {output}
+			"""
+rule BWA:
+	input: lambda wildcards: FASTQS[wildcards.sample]
+	output: "{output_dir}/{sample}/{sample}.bam","{output_dir}/{sample}/{sample}.bai"
+	shell:
+			"""
+			bwa -i {input} {output}
+			"""
+			
+rule FASTQC:
+	input: lambda wildcards: FASTQS[wildcards.sample]
+	output: "{output_dir}/{sample}/fastqc/{sample}_R1.fastqc.html"
+	shell:
+			"""
+			fastqc.pl -i {input} {output}
+			"""

@@ -1,0 +1,114 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+use Getopt::Long;
+use Pod::Usage;
+use Time::Piece;
+use File::Basename;
+
+my $type;
+my $data_dir="/data/khanlab/projects/DATA";
+my $sheet;
+my $pipeline_home = `dirname $0`;
+my $work_dir="";
+my $dryrun;
+my $dag;
+my $help;
+
+if (`dirname $0` =~ /^\./){
+	$pipeline_home = `pwd`;	
+}
+
+chomp $pipeline_home;
+
+=head1 SYNOPSIS
+
+Usage:
+
+$0 [options]
+
+required options:
+
+	-type|t		<string>	Pipeline type (available options: hic,chipseq,ranseq,dnaseq)
+	-workdir|w	<string>	Working directory where all the results will be stored.
+	-sheet|s	<string>	Sample sheet in YAML format
+
+optional options:  
+	-datadir|d	<string>	FASTQ file location (default: $dataDir)
+	-dryrun					Dryrun only
+	-dag					Generate DAG PDF
+
+Example
+  
+  launch -type hic -workdir /data/khanlab/projects/HiC/pipeline_dev -s /data/khanlab/projects/HiC/pipeline_dev/samplesheet.yaml
+
+For questions or comments, please contact: Hsienchao Chou <chouh@nih.gov>
+  
+=cut
+
+GetOptions(
+		'dryrun'	=>\$dryrun,
+		'dag'	=>\$dag,
+		'type|t=s'      =>\$type,
+		'datadir|d=s'   =>\$data_dir,
+		'workdir|w=s'   =>\$work_dir,
+		'sheet|s=s'   	=>\$sheet,
+		'help|h'      	=>\$help,
+	  )or pod2usage();
+
+$help and pod2usage ();
+
+if (!$type || ($type ne "hic" && $type ne "chipseq" && $type ne "rnaseq" && $type ne "dnaseq")){
+	print STDERR "ERROR: must specify '-type'\n";
+	print STDERR "\t Possible values are: hic,chipseq,ranseq,dnaseq\n";
+	exit;
+}
+if ($type ne "hic") {
+	print STDERR "$type not implemented yet";
+	exit;
+}
+if (!$work_dir){
+	print STDERR "-workdir|w is required. Location where you would like to write results\n\n";
+	exit;
+}
+if (!$sheet){
+	print STDERR "-sheet|s is required. The samplesheet in YAML format\n";
+	exit;
+}
+
+my $now=`echo \$(date +"%Y%m%d_%H%M%S")`;
+chomp $now;
+my $jobid;
+my $sheet_name = basename($sheet, ".yaml");
+my $snakefile="$pipeline_home/pipeline.$type.rules";
+my $snake_command = "snakemake --directory $work_dir --snakefile $snakefile --configfile $sheet";
+if ($dryrun){
+	$snake_command = $snake_command." -p -r --ri --dryrun";
+	if ($dag) {
+		$snake_command = $snake_command." --dag | dot -Tpdf > dag.$type.pdf";
+	}	
+	my $cmd = "(
+		module load snakemake/5.13.0
+		module load graphviz
+		export NOW=$now
+		export PIPELINE_HOME=$pipeline_home
+		export WORK_DIR=$work_dir
+		export DATA_DIR=$data_dir
+		$snake_command
+		rm -rf $work_dir/pipeline.$type.${sheet_name}.$now.csv
+		)";
+	print "$cmd\n";
+	exec "$cmd";
+}
+else{
+	system("mkdir -p $work_dir/log");
+	system("chmod g+rw $work_dir/log");
+	$snake_command = $snake_command." --jobname {params.rulename}.{jobid} --nolock  --ri -k -p -r -j 1000 --cores 150 --jobscript $pipeline_home/scripts/jobscript.sh --cluster \"sbatch -o log/{params.rulename}.%j.o -e log/{params.rulename}.%j.e {params.batch}\"";
+	$jobid = readpipe("sbatch -e $work_dir/log/pipeline.$type.${sheet_name}_${now}.%j.e -o $work_dir/log/pipeline.$type.${sheet_name}_${now}.%j.o --export=NOW=$now,WORK_DIR=$work_dir,PIPELINE_HOME=$pipeline_home,DATA_DIR=$data_dir --cpus-per-task=2 --mem=8G --partition=ccr,norm --time=4-00:00:00 $snake_command");
+	
+}
+
+chomp $jobid;
+print "$jobid\t$sheet\t$pipeline_home\t$work_dir/pipeline.$type.${sheet_name}_$now.log\n" if $jobid;
+
+

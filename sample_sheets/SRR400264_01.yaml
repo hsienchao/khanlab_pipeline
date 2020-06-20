@@ -1,0 +1,20 @@
+%YAML 1.2
+---
+samples:
+    SRR400264_01:
+                        SampleName: "SRR400264"
+                        Amplified_Sample_Library_Name: "SRR400264"
+                        SampleFiles: "Sample_SRR400264_01"
+                        Batch_SRA: "032"
+                        FlowCell_GSE: "01"
+                        CompareGroup: "RH4_Ent6_H3K27ac_HiChIP"
+                        Index_ID: "M17"
+                        Barcode: "GTAGAG "
+                        Sample_Project: "Project_Other_RMS_3D_SpikeIn"
+                        Case_Name: "RH4_HiChIP_DMSO_v_Entinostat"
+                        Genome: hg19
+                        SpikeIn: 'no'
+                        SpikeInGenome: ""
+                          
+
+
