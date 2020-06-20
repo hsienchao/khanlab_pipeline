@@ -36,9 +36,9 @@ Bioinformatics Tools Listed in [config files](config/config_common.json)
 
 - Sample sheet in YAML format
 - Sample sheet can be generated using script sampleToYaml.py. Example:
-'''
+```
 python scripts/sampleToYaml.py /data/khanlab/projects/HiC/manage_samples/HiC_sample_sheet.xlsx RH4_Ent6_H3K27ac_HiChIP_HH3JVBGX7 > RH4_Ent6_H3K27ac_HiChIP_HH3JVBGX7.hic.yaml
-'''
+```
 
 ##### Required columns: 
 1. Amplified_Sample_Library_Name1. 
