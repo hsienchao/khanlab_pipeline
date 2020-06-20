@@ -1,8 +1,7 @@
+![Snakemake](https://img.shields.io/badge/snakemake- >=4.8.0-brightgreen.svg?style=flat-square)
 # khanlab_pipeline
-Bioinformatics pipeline
-
-## Introduction
 This is the implementation of [KhanLab](https://ccr.cancer.gov/Genetics-Branch/javed-khan) NGS Pipeline using Snakemake.
+
 ## Installation
 
 The easiest way to get this pipeline is to clone the repository.
@@ -28,8 +27,6 @@ Bioinformatics Tools Listed in [config files](config/config_common.json)
 
 - Sample names cannot have "/" or "." in them
 - Fastq files end in ".fastq.gz"
-- Fastq files are stored in DATA_DIR (Set as Environment Variable) 
-
 
 ## Run pipeline
 
@@ -38,6 +35,10 @@ Bioinformatics Tools Listed in [config files](config/config_common.json)
 #### Input 
 
 - Sample sheet in YAML format
+- Sample sheet can be generated using script sampleToYaml.py. Example:
+'''
+python scripts/sampleToYaml.py /data/khanlab/projects/HiC/manage_samples/HiC_sample_sheet.xlsx RH4_Ent6_H3K27ac_HiChIP_HH3JVBGX7 > RH4_Ent6_H3K27ac_HiChIP_HH3JVBGX7.hic.yaml
+'''
 
 ##### Required columns: 
 1. Amplified_Sample_Library_Name1. 
