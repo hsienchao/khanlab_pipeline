@@ -28,6 +28,8 @@ try:
     MERGED_PAIRS = []
     PAIRS_AQUA = []
     MERGED_PAIRS_AQUA = []
+    MERGE_STATS = []
+    MERGE_STATS_AQUA = []
     JUICEBOX_OUT = []
     VIEWPOINT_OUT = []
 
@@ -57,8 +59,10 @@ try:
                 HICPRO_SCRIPTS.append("HiCproAQuAOUTPUT/HiCPro_step2_" + library["SpikeInGenome"] + "_HiCpro.sh")
             PAIRS_AQUA.append("HiCproAQuAOUTPUT/hic_results/data/" + library_id + "/" + library_id + "_" + config[config["spike_in_genome"]]["bowtie2_index"] + ".bwt2pairs.validPairs")
             MERGED_PAIRS_AQUA.append("HiCproAQuAOUTPUT/hic_results/data/" + library_id + "/" + library_id + ".allValidPairs")
+            MERGE_STATS_AQUA.append("HiCproAQuAOUTPUT/hic_results/stats/" + library_id + "/" + library_id + "_allValidPairs.mergestat")
         PAIRS.append("HiCproOUTPUT/hic_results/data/" + library_id + "/" + library_id + "_" + config[config["ref_genome"]]["bowtie2_index"] + ".bwt2pairs.validPairs")
         MERGED_PAIRS.append("HiCproOUTPUT/hic_results/data/" + library_id + "/" + library_id + ".allValidPairs")    
+        MERGE_STATS.append("HiCproOUTPUT/hic_results/stats/" + library_id + "/" + library_id + "_allValidPairs.mergestat")    
         JUICEBOX_OUT.append(library_id + ".allValidPairs.hic")
         VIEWPOINT_OUT.append("HiCproOUTPUT/hic_results/data/" + library_id + "/" + library_id + ".bedgraph")
 
@@ -76,10 +80,10 @@ onsuccess:
     shell("touch {work_dir}/successful.txt;chgrp -R khanlab {work_dir}")
     print("Workflow finished, no error")
     
-localrules: HiCPro, prepareFASTQ, HiC_pipeline
+localrules: HiCPro, prepareFASTQ, HiC_pipeline, mergeStats
 #print(FASTQS,HICPRO_SCRIPTS,PAIRS,MERGED_PAIRS,PAIRS_AQUA,MERGED_PAIRS_AQUA,JUICEBOX_OUT,VIEWPOINT_OUT)
 rule HiC_pipeline:
-    input: FASTQS,HICPRO_SCRIPTS,PAIRS,MERGED_PAIRS,PAIRS_AQUA,MERGED_PAIRS_AQUA,JUICEBOX_OUT
+    input: HICPRO_SCRIPTS,PAIRS,MERGED_PAIRS,PAIRS_AQUA,MERGED_PAIRS_AQUA,JUICEBOX_OUT,MERGE_STATS,MERGE_STATS_AQUA,"mergeStats.txt"
 
 rule makeViewPoint:
     input:  
@@ -113,11 +117,25 @@ rule HiCpro2Juicebox:
             hicpro2juicebox.sh -i {input} -g {params.juicer_genome} -j {params.juicer_jar}
             """
 
+rule mergeStats:
+    input:
+            MERGE_STATS,MERGE_STATS_AQUA
+    output:
+            "mergeStats.txt"
+    params:
+            pipeline_home = config["pipeline_home"],
+            ref_genome = config["ref_genome"],
+            spike_in_genome = lambda wildcards: config["spike_in_genome"] if "spike_in_genome" in config else "",
+    shell:
+            """
+            bash {params.pipeline_home}/scripts/mergeStats.sh {params.ref_genome} {params.spike_in_genome}
+            """
+            
 rule HiCProAQuAStep2:
     input: 
             PAIRS_AQUA
     output: 
-            MERGED_PAIRS_AQUA
+            MERGED_PAIRS_AQUA,MERGE_STATS_AQUA
     params:
             genome = lambda wildcards: config["spike_in_genome"] if "spike_in_genome" in config else "",
             work_dir = config["work_dir"],
@@ -128,6 +146,7 @@ rule HiCProAQuAStep2:
             module load hicpro/2.11.1
             sed -i 's/$SLURM_SUBMIT_DIR/HiCproAQuAOUTPUT/' HiCproAQuAOUTPUT/HiCPro_step2_{params.genome}_HiCpro.sh
             bash HiCproAQuAOUTPUT/HiCPro_step2_{params.genome}_HiCpro.sh
+            rm -rf HiCproAQuAOUTPUT/bowtie_results
             """
 
 rule HiCProAQuAStep1:
@@ -142,21 +161,19 @@ rule HiCProAQuAStep1:
             batch    = config["cluster"]["large"]
     shell:
             """
-            module load hicpro/2.11.1
-            echo "start mm10 step1..."
+            module load hicpro/2.11.1            
             pwd
             cd HiCproAQuAOUTPUT
             sed -i 's/$SLURM_SUBMIT_DIR\///' HiCPro_step1_{params.genome}_HiCpro.sh
             bash HiCPro_step1_{params.genome}_HiCpro.sh
-            cd ..
-            echo "finished mm10 step1..."
+            cd ..            
             """
             
 rule HiCProStep2:
     input:
             PAIRS
     output: 
-            MERGED_PAIRS
+            MERGED_PAIRS,MERGE_STATS
     params:
             genome = config["ref_genome"],
             work_dir = config["work_dir"],
@@ -167,6 +184,7 @@ rule HiCProStep2:
             module load hicpro/2.11.1
             sed -i 's/$SLURM_SUBMIT_DIR/HiCproOUTPUT/' HiCproOUTPUT/HiCPro_step2_{params.genome}_HiCpro.sh
             bash HiCproOUTPUT/HiCPro_step2_{params.genome}_HiCpro.sh
+            rm -rf HiCproOUTPUT/bowtie_results
             cd ..
             """
 
@@ -183,8 +201,6 @@ rule HiCProStep1:
     shell:
             """
             module load hicpro/2.11.1
-            echo "start step1..."
-            pwd
             cd HiCproOUTPUT
             sed -i 's/$SLURM_SUBMIT_DIR\///' HiCPro_step1_{params.genome}_HiCpro.sh
             bash HiCPro_step1_{params.genome}_HiCpro.sh

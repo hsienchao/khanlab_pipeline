@@ -14,8 +14,7 @@ This pipeline is available on NIH biowulf cluster, contact me if you would like 
 [snakemake 5.13.0](https://snakemake.readthedocs.io/en/stable/)  
 [mutt](http://www.mutt.org/)  
 [gnu parallel](http://www.gnu.org/software/parallel/)  
-SLURM or PBS for resource management  
-Bioinformatics Tools Listed in [config files](config/config_common.json)  
+SLURM resource management
 
 ### HiC:
 - [HiCPro] (https://github.com/nservant/HiC-Pro)
@@ -66,12 +65,12 @@ samples:
 2. HiCpro pairs:
   * Pairs for the reference genome:
     * [output dir]/HiCproOUTPUT/hic_results/data/[sample_id]/[sample_id]/[sample_id].allValidPair
-  * Mergestate for the reference genome:
-    * [output dir]/HiCproOUTPUT/hic_results/stats/[sample_id]/[sample_id]/[sample_id].allValidPair.mergestat
   * Pairs for the spikeIn genome:
     * [output dir]/HiCproAQuAOUTPUT/hic_results/data/[sample_id]/[sample_id]/[sample_id].allValidPair
-  * Mergestate for the spikeIn genome:
-    * [output dir]/HiCproAQuAOUTPUT/hic_results/stats/[sample_id]/[sample_id]/[sample_id].allValidPair.mergestat
+  * Mergestat summary (reference and spike-In):
+    * mergeStats.txt
+  * Successful flag:
+    * successful.txt
 
 #### Launching the pipeline
 ##### 1. General launch script:
@@ -123,7 +122,11 @@ Not implemented yet.
 ### Methylseq
 Not implemented yet.
 ## Rulegraph
+
 DAG for HiC example
 ![alt tag](dag.hic.pdf)
 
-For questions or comments, please contact: Hsienchao Chou
+DAG for HiC example (no spike-In)
+![alt tag](dag.nospikeIn.hic.pdf)
+
+For questions or comments, please contact: Hsien-chao Chou (chouh@nih.gov)
