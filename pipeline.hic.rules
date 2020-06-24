@@ -43,8 +43,8 @@ try:
         FASTQS.append("DATA/" + library_id + "/" + library_id + suffix_R2)
         if not os.path.exists(data_dir + "/" + sample_file + "/" + sample_file + suffix_R1):
             raise Exception(data_dir + "/" + sample_file + "/" + sample_file + suffix_R1 + ' not found')
-        if not os.path.exists(data_dir + "/" + sample_file + "/" + sample_file + suffix_R1):
-            raise Exception(data_dir + "/" + sample_file + "/" + sample_file + suffix_R1 + ' not found')
+        if not os.path.exists(data_dir + "/" + sample_file + "/" + sample_file + suffix_R2):
+            raise Exception(data_dir + "/" + sample_file + "/" + sample_file + suffix_R2 + ' not found')
         #add HiC-Pro targets
         if not "Genome" in library:
             raise Exception('Genome not found in sample sheet')
@@ -69,8 +69,8 @@ try:
     HICPRO_SCRIPTS.append("HiCproOUTPUT/HiCPro_step1_" + config["ref_genome"] + "_HiCpro.sh")
     HICPRO_SCRIPTS.append("HiCproOUTPUT/HiCPro_step2_" + config["ref_genome"] + "_HiCpro.sh")
 except Exception as err:
-    shell("echo 'HiC pipeline version {pipeline_version} has exception: reason " + str(err) + ". Samples: {LIBRARIES}. Working Dir:  {work_dir}' |mutt -e 'my_hdr From:chouh@nih.gov' -s 'Khanlab HiC Pipeline Status' `whoami`@mail.nih.gov {emails} ")
-    sys.exit(str(err))
+    shell("echo 'HiC pipeline has exception: reason " + str(err) + ". Working Dir:  {work_dir}' |mutt -e 'my_hdr From:chouh@nih.gov' -s 'Khanlab HiC Pipeline Status' `whoami`@mail.nih.gov {emails} ")
+    sys.exit(1)
 onerror:
     shell("echo 'HiC pipeline version {pipeline_version} failed on Biowulf. Samples: {LIBRARIES}. Working Dir:  {work_dir}' |mutt -e 'my_hdr From:chouh@nih.gov' -s 'Khanlab HiC Pipeline Status' `whoami`@mail.nih.gov {emails} ")
 onstart:

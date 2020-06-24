@@ -67,7 +67,7 @@ if (!$type || ($type ne "hic" && $type ne "chipseq" && $type ne "rnaseq" && $typ
 	print STDERR "\t Possible values are: hic,chipseq,ranseq,dnaseq\n";
 	exit;
 }
-if ($type ne "hic") {
+if ($type ne "hic" && $type ne "rnaseq") {
 	print STDERR "$type not implemented yet";
 	exit;
 }
@@ -108,7 +108,7 @@ else{
 	system("mkdir -p $work_dir/log");
 	system("chmod g+rw $work_dir/log");
 	$snake_command = $snake_command." --jobname {params.rulename}.{jobid} --nolock  --ri -k -p -r -j 1000 --cores 150 --jobscript $pipeline_home/scripts/jobscript.sh --cluster \"sbatch -o log/{params.rulename}.%j.o -e log/{params.rulename}.%j.e {params.batch}\"";
-	$jobid = readpipe("sbatch -e $work_dir/log/pipeline.$type.${sheet_name}_${now}.%j.e -o $work_dir/log/pipeline.$type.${sheet_name}_${now}.%j.o --export=NOW=$now,WORK_DIR=$work_dir,PIPELINE_HOME=$pipeline_home,DATA_DIR=$data_dir --cpus-per-task=2 --mem=8G --partition=ccr,norm --time=4-00:00:00 $snake_command");
+	$jobid = readpipe("module load snakemake/5.13.0;sbatch -e $work_dir/log/pipeline.$type.${sheet_name}_${now}.%j.e -o $work_dir/log/pipeline.$type.${sheet_name}_${now}.%j.o --export=NOW=$now,WORK_DIR=$work_dir,PIPELINE_HOME=$pipeline_home,DATA_DIR=$data_dir --cpus-per-task=2 --mem=8G --partition=ccr,norm --time=4-00:00:00 $snake_command");
 	
 }
 
