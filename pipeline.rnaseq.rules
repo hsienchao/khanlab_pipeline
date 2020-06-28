@@ -1,0 +1,386 @@
+import os
+import io
+import sys
+import traceback
+import json
+
+
+try:
+    samples = config['samples']
+
+    data_dir = os.environ['DATA_DIR']
+    work_dir = os.environ['WORK_DIR']
+    pipeline_home = os.environ['PIPELINE_HOME']
+    shell.prefix("""
+    set -e -o pipefail
+    module purge
+    sleep 20s
+    MEM=`echo "${{SLURM_MEM_PER_NODE}} / 1024 "|bc`
+    LOCAL="/lscratch/${{SLURM_JOBID}}/"
+    THREADS=${{SLURM_CPUS_ON_NODE}}
+    """)
+
+    configfile: pipeline_home +"/config/config.rnaseq.yaml"
+    pipeline_version = config["common"]["pipeline_version"]
+    emails = config["common"]["emails"]
+
+    config["pipeline_home"] = pipeline_home
+    config["work_dir"] = work_dir
+        
+    suffix_R1 = config["common"]["FASTQ_suffix_R1"]
+    suffix_R2 = config["common"]["FASTQ_suffix_R2"]
+    suffix_SE = config["common"]["FASTQ_suffix_SE"]
+
+    SAMPLES = []
+    #prepare targets
+    FASTQS = {}
+    BAMS = []
+    RSEM= []
+    HLA= []
+
+    for sample_id, sample in samples.items():        
+        SAMPLES.append(sample_id)
+        FASTQS[sample_id] = []
+        #add FASTQ targets
+        if not "SampleFiles" in sample:
+            raise Exception('SampleFiles not found in sample sheet')
+        sample_file = sample["SampleFiles"]
+        # check source FASTQ files exist and determine if this is paired_end
+        if not os.path.exists(data_dir + "/" + sample_file + "/" + sample_file + suffix_R1):
+            raise Exception(data_dir + "/" + sample_file + "/" + sample_file + suffix_R1 + ' not found')
+        samples[sample_id]["PE"] = False
+        if os.path.exists(data_dir + "/" + sample_file + "/" + sample_file + suffix_R2):
+            config['samples'][sample_id]["PE"] = True
+        if not "Genome" in sample:
+            raise Exception('Genome not found in sample sheet')        
+        if "Xenograft" in sample and sample["Xenograft"] == "yes":
+            #only add script targets once
+            if not "XenograftGenome" in sample:
+                raise Exception('XenograftGenome not found in sample sheet')
+            #BAMS.append("mapping/xenofilter." + sample_id + "." + sample["Genome"] + "." + sample["XenograftGenome"] + ".ens.genome/Filtered_bams/" + sample_id + "." + sample["Genome"] + "." + sample["XenograftGenome"] + ".ens.genome_Filtered.bam");            
+            if (samples[sample_id]["PE"]):
+                FASTQS[sample_id].append(sample_id + "/DATA/" + sample_id + ".filtered" + suffix_R1)
+                FASTQS[sample_id].append(sample_id + "/DATA/" + sample_id + ".filtered" + suffix_R2)
+            else:
+                FASTQS[sample_id].append(sample_id + "/DATA/" + sample_id + ".filtered" + suffix_SE)
+            #for annotation in config["annotations"]:
+                #BAMS.append("mapping/" + sample_id + "." + sample["XenograftGenome"] + "." + annotation + ".genome.bam")
+                #BAMS.append("mapping/" + sample_id + "." + sample["XenograftGenome"] + "." + annotation + ".genome.bam.bai")
+                #BAMS.append("mapping/" + sample_id + "." + sample["XenograftGenome"] + "." + annotation + ".trans.bam")
+                #BAMS.append("mapping/xenofilter." + sample_id + "." + sample["Genome"] + "." + sample["XenograftGenome"] + "." + annotation + ".trans/Filtered_bams/" + sample_id + "." + sample["Genome"] + "." + sample["XenograftGenome"] + "." + annotation + ".trans_Filtered.bam")
+                #BAMS.append("mapping/xenofilter." + sample_id + "." + sample["Genome"] + "." + sample["XenograftGenome"] + "." + annotation + ".genome/Filtered_bams/" + sample_id + "." + sample["Genome"] + "." + sample["XenograftGenome"] + "." + annotation + ".genome_Filtered.bam")
+            
+        else:            
+            if (samples[sample_id]["PE"]):
+                FASTQS[sample_id].append(sample_id + "/DATA/" + sample_id + suffix_R1)
+                FASTQS[sample_id].append(sample_id + "/DATA/" + sample_id + suffix_R2)
+            else:
+                FASTQS[sample_id].append(sample_id + "/DATA/" + sample_id + suffix_SE)
+        for annotation in config["annotations"]:
+            BAMS.append(sample_id + "/" + sample_id + "." + sample["Genome"] + "." + annotation + ".star.genome.bam")
+            BAMS.append(sample_id + "/" + sample_id + "." + sample["Genome"] + "." + annotation + ".star.genome.bam.bai")
+            BAMS.append(sample_id + "/" + sample_id + "." + sample["Genome"] + "." + annotation + ".star.trans.bam")
+            RSEM.append(sample_id + "/RSEM_" + sample["Genome"] + "_" + annotation + "/" + sample_id + "." + sample["Genome"] + "." + annotation + ".genes.results")
+            RSEM.append(sample_id + "/RSEM_" + sample["Genome"] + "_" + annotation + "/" + sample_id + "." + sample["Genome"] + "." + annotation + ".isoforms.results")
+        HLA.append(sample_id + "/HLA/" + sample_id + ".Calls.txt")
+        
+except Exception as err:
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+    output = io.StringIO()
+    traceback.print_exception(exc_type, exc_value, exc_traceback, file=output)
+    contents = output.getvalue()
+    output.close()
+    print(contents)    
+    shell("echo 'RNAseq pipeline has exception: reason " + contents + ". Working Dir:  {work_dir}' |mutt -e 'my_hdr From:chouh@nih.gov' -s 'Khanlab RNAseq Pipeline Status' `whoami`@mail.nih.gov {emails} ")
+    sys.exit()
+    
+onerror:
+    shell("echo 'RNAseq pipeline version {pipeline_version} failed on Biowulf. Samples: {SAMPLES}. Working Dir:  {work_dir}' |mutt -e 'my_hdr From:chouh@nih.gov' -s 'Khanlab RNAseq Pipeline Status' `whoami`@mail.nih.gov {emails} ")
+onstart:
+    shell("echo 'RNAseq pipeline version {pipeline_version} started on Biowulf. Samples: {SAMPLES}. Working Dir:  {work_dir}' |mutt -e 'my_hdr From:chouh@nih.gov' -s 'Khanlab RNAseq Pipeline Status' `whoami`@mail.nih.gov {emails} ")
+onsuccess:
+    shell("echo 'RNAseq pipeline version {pipeline_version} finished on Biowulf. Samples: {SAMPLES}. Working Dir:  {work_dir}' |mutt -e 'my_hdr From:chouh@nih.gov' -s 'Khanlab RNAseq Pipeline Status' `whoami`@mail.nih.gov {emails} ")
+    shell("for s in {SAMPLES};do touch {work_dir}/${{s}}/successful.txt;chgrp -R khanlab {work_dir}/${{s}};done")
+    print("Workflow finished, no error")
+    
+localrules: prepareFASTQ, RNAseq_pipeline, MergeHLA
+
+rule RNAseq_pipeline:
+    input: BAMS,HLA,RSEM
+
+rule rsem:
+    input:
+            bam="{sample}/{sample}.{genome}.{annotation}.star.trans.bam"
+    output:
+            "{sample}/RSEM_{genome}_{annotation}/{sample}.{genome}.{annotation}.genes.results",
+            "{sample}/RSEM_{genome}_{annotation}/{sample}.{genome}.{annotation}.isoforms.results"
+    version:
+            config["version"]["rsem"]
+    params:
+            rulename = "RSEM",
+            ref = lambda wildcards: config[samples[wildcards.sample]["Genome"]]["rsem_ref_" + wildcards.annotation],
+            batch = config['cluster']['job_rsem'],
+            library = lambda wildcards: "--strandedness reverse" if samples[wildcards.sample]['sample_captures'] != "polya" else "",
+            paired_end = lambda wildcards: "--paired-end" if samples[wildcards.sample]["PE"] else "",
+            log_dir = lambda wildcards: wildcards.sample + '/log',
+            work_dir = work_dir
+    benchmark:
+            "{sample}/benchmark/rsem.{genome}.{annotation}.benchmark.txt"
+    shell:
+            """
+            module load rsem/{version}
+            WORK_DIR=`pwd`
+            cd ${{LOCAL}}/
+            rsem-calculate-expression --no-bam-output {params.paired_end} -p ${{THREADS}} {params.library} --estimate-rspd \
+                --bam {params.work_dir}/{input.bam} {params.ref} {wildcards.sample}_{wildcards.annotation}
+            mkdir -p {params.work_dir}/{wildcards.sample}/RSEM_{wildcards.genome}_{wildcards.annotation}
+            mv -f {wildcards.sample}_{wildcards.annotation}.genes.results {params.work_dir}/{wildcards.sample}/RSEM_{wildcards.genome}_{wildcards.annotation}/{wildcards.sample}.{wildcards.genome}.{wildcards.annotation}.genes.results
+            mv -f {wildcards.sample}_{wildcards.annotation}.isoforms.results {params.work_dir}/{wildcards.sample}/RSEM_{wildcards.genome}_{wildcards.annotation}/{wildcards.sample}.{wildcards.genome}.{wildcards.annotation}.isoforms.results
+	"""
+
+rule XenofilteR:
+    input:
+            ref_genome = lambda wildcards: wildcards.sample + "/" + wildcards.sample + "." + wildcards.genome + "." + wildcards.annotation + "." + wildcards.ref_type + ".bam",
+            xeno_genome = lambda wildcards: wildcards.sample +  "/" + wildcards.sample + "." + wildcards.xeno_genome + "." + wildcards.annotation + "." + wildcards.ref_type + ".bam"
+    output:
+            bam="{sample}/xenofilter.{sample}.{genome}.{xeno_genome}.{annotation}.{ref_type}/Filtered_bams/{sample}.{genome}.{xeno_genome}.{annotation}.{ref_type}_Filtered.bam"
+    params:
+            pipeline_home = config["pipeline_home"],
+            batch    = config["cluster"]["job_xenofilter"],
+            rulename = "XenofilteR",
+            log_dir = lambda wildcards: wildcards.sample + '/log',
+            output_dir = lambda wildcards: "mapping/xenofilter." + wildcards.sample + "." + wildcards.genome + "." + wildcards.xeno_genome + "." + wildcards.annotation + "." + wildcards.ref_type
+    shell:
+            """
+            module load R/4.0.0            
+            export R_LIBS={params.pipeline_home}/Rlibs/4.0/sample
+            rm -rf {params.output_dir}
+            mkdir -p {params.output_dir}
+            echo -e "{input.ref_genome}\t{input.xeno_genome}" > {params.output_dir}/sample_list.txt
+            Rscript {params.pipeline_home}/scripts/runXenofilteR.R -s {params.output_dir}/sample_list.txt \
+                    -o {params.output_dir} \
+                    -n {wildcards.sample}.{wildcards.genome}.{wildcards.xeno_genome}.{wildcards.annotation}.{wildcards.ref_type}
+            """
+ 
+############
+#   seq2HLA
+############
+rule seq2HLA:
+    input:  
+            lambda wildcards: FASTQS[wildcards.sample]
+    output:
+            "{sample}/HLA/seq2HLA/{sample}-ClassI.HLAgenotype4digits"
+    params:
+            rulename= "seq2HLA",
+            log_dir = lambda wildcards: wildcards.sample + '/log',
+            app_home = config["common"]["app_home"],
+            python_version  = config["version"]['python2'],
+            R_version = config["version"]['R'],
+            bowtie_version = config["version"]['bowtie'],
+            batch = config["cluster"]["job_seq2hla"],
+            hla=lambda wildcards: config[samples[wildcards.sample]["Genome"]]["hla_ref"],
+            fastqs = lambda wildcards: " -1 " + FASTQS[wildcards.sample][0] + " -2 " + FASTQS[wildcards.sample][1] if len(FASTQS[wildcards.sample])==2 else " -1 " + FASTQS[wildcards.sample][0]
+    benchmark:
+            "{sample}/benchmark/seq2HLA.{sample}.benchmark.txt"
+    shell:
+            """
+            module load bowtie/{params.bowtie_version} python/{params.python_version} R/{params.R_version}
+            python {params.app_home}/seq2HLA/seq2HLA.py {params.hla}/seq2HLA/ -1 {input[0]} -2 {input[1]}  -p ${{THREADS}} -r {wildcards.sample}/HLA/seq2HLA/{wildcards.sample}
+            """
+            
+############
+#   HLAminer
+############
+rule HLAminer:
+    input:
+            lambda wildcards: FASTQS[wildcards.sample]
+    output: 
+            "{sample}/HLA/HLAminer/HLAminer_HPTASR.csv"
+    version:
+            config["version"]["HLAminer"]
+    params:
+            app_home = config["common"]["app_home"],
+            rulename="HLAminer",
+            log_dir = lambda wildcards: wildcards.sample + '/log',
+            batch=config["cluster"]["job_hlaminer"],
+            hla=lambda wildcards: config[samples[wildcards.sample]["Genome"]]["hla_ref"],
+            pipeline_home=pipeline_home
+    benchmark:
+            "{sample}/benchmark/HLAminer.{sample}.benchmark.txt"
+    shell: 
+            """
+            echo {work_dir}/{input[0]} >{wildcards.sample}/HLA/HLAminer/patient.fof
+            echo {work_dir}/{input[1]} >>{wildcards.sample}/HLA/HLAminer/patient.fof
+            bash {params.app_home}/HLAminer_v{version}/bin/HPTASRwgs_classI.sh {params.app_home}/HLAminer_v{version}/bin {wildcards.sample}/HLA/HLAminer/
+            """
+############
+##  MergeHLA Calls
+#############
+rule MergeHLA:
+    input:
+        A="{sample}/HLA/HLAminer/HLAminer_HPTASR.csv",
+        B="{sample}/HLA/seq2HLA/{sample}-ClassI.HLAgenotype4digits",
+    output:
+        "{sample}/HLA/{sample}.Calls.txt"
+    params:
+        rulename = "MergeHLA",
+        log_dir = lambda wildcards: wildcards.sample + '/log',
+        script=pipeline_home + "/scripts/consensusHLA.pl"
+    shell: 
+        """
+        export LC_ALL=C
+        perl {params.script} {input.B} {input.A} | sort > {output}
+        """
+    
+rule STAR:
+    input:
+            lambda wildcards: FASTQS[wildcards.sample]
+    output: 
+            genome_bam="{sample}/{sample}.{genome}.{annotation}.star.genome.bam",
+            genome_bai="{sample}/{sample}.{genome}.{annotation}.star.genome.bam.bai",
+            trans_bam="{sample}/{sample}.{genome}.{annotation}.star.trans.bam"
+    version:
+            config["version"]["star"]
+    params:
+            star_ref = lambda wildcards: config[wildcards.genome]["star_index_" + wildcards.annotation],
+            fastqs = lambda wildcards: " ".join(work_dir + '/' + x for x in FASTQS[wildcards.sample]),
+            work_dir = config["work_dir"],
+            batch    = config["cluster"]["job_star"],
+            rulename = "STAR",
+            log_dir = lambda wildcards: wildcards.sample + '/log',
+    benchmark:
+            "{sample}/benchmark/star.{sample}.{genome}.{annotation}.benchmark.txt"
+    shell:
+            """
+            module load STAR/{version} samtools
+            cd ${{LOCAL}}/
+            num_cores=$SLURM_CPUS_ON_NODE
+            echo $num_cores
+            echo ${{THREADS}}
+            STAR 	--outTmpDir twopass \
+                    --genomeDir {params.star_ref} \
+                    --readFilesIn {params.fastqs} \
+                    --readFilesCommand zcat\
+                    --outSAMtype BAM SortedByCoordinate\
+                    --twopassMode Basic \
+                    --outFileNamePrefix {wildcards.sample}.{wildcards.genome}.{wildcards.annotation} \
+                    --runThreadN ${{THREADS}} \
+                    --outFilterMismatchNmax 2\
+                    --outSAMunmapped Within \
+                    --quantMode TranscriptomeSAM \
+                    --outSAMattributes NM \
+                    --limitBAMsortRAM 61374258131\
+            echo "Finished STAR twopass mapping"
+            mkdir -p {params.work_dir}/mapping
+            mv -f {wildcards.sample}.{wildcards.genome}.{wildcards.annotation}Aligned.sortedByCoord.out.bam {params.work_dir}/{output.genome_bam}
+            mv -f {wildcards.sample}.{wildcards.genome}.{wildcards.annotation}Aligned.toTranscriptome.out.bam {params.work_dir}/{output.trans_bam}
+            samtools index {params.work_dir}/{output.genome_bam}            
+            """
+            
+rule xenome_se:
+    input:
+            "{sample}/DATA/{sample}" + suffix_SE,
+    output: 
+            "{sample}/DATA/{sample}.filtered" + suffix_SE,
+    version:
+            config["version"]["xenome"]
+    params:
+            xenome_ref = lambda wildcards: config[samples[wildcards.sample]["Genome"]]["xenome_ref"],
+            fastqs = lambda wildcards: " -i DATA/" + wildcards.sample + "/" + wildcards.sample +  + suffix_SE,
+            work_dir = config["work_dir"],
+            batch    = config["cluster"]["job_xenome"],
+            rulename = "xenome",
+            log_dir = lambda wildcards: wildcards.sample + '/log',
+    shell:
+            """
+            module load xenome
+            xenome classify -P {params.xenome_ref} -M ${{MEM}} -T ${{THREADS}} --graft-name human --host-name mouse {params.fastqs} --output-filename-prefix {wildcards.sample}/DATA/{wildcards.sample}
+            awk '{{if (NR % 4 == 1) print "@"$0; else if (NR % 4 == 3) print "+"$0; else print $0 }}' {wildcards.sample}/DATA/{wildcards.sample}_human_1.fastq > {wildcards.sample}/DATA/{wildcards.sample}/{wildcards.sample}.filtered.fastq
+            awk '{{if (NR % 4 == 1) print "@"$0; else if (NR % 4 == 3) print "+"$0; else print $0 }}' {wildcards.sample}/DATA/{wildcards.sample}_both_1.fastq >> {wildcards.sample}/DATA/{wildcards.sample}/{wildcards.sample}.filtered.fastq
+            #awk '{{if (NR % 4 == 1) print "@"$0; else if (NR % 4 == 3) print "+"$0; else print $0 }}' {wildcards.sample}/DATA/{wildcards.sample}_ambiguous_1.fastq >> {wildcards.sample}/DATA/{wildcards.sample}/{wildcards.sample}.filtered.fastq
+            awk '{{if (NR % 4 == 1) print "@"$0; else if (NR % 4 == 3) print "+"$0; else print $0 }}' {wildcards.sample}/DATA/{wildcards.sample}_neither_1.fastq >> {wildcards.sample}/DATA/{wildcards.sample}/{wildcards.sample}.filtered.fastq
+            gzip {wildcards.sample}/DATA/{wildcards.sample}.filtered.fastq
+            """
+
+rule xenome_pe:
+    input:
+            "{sample}/DATA/{sample}" + suffix_R1,
+            "{sample}/DATA/{sample}" + suffix_R2,
+    output: 
+            "{sample}/DATA/{sample}.filtered2" + suffix_R1,
+            "{sample}/DATA/{sample}.filtered2" + suffix_R2,
+    version:
+            config["version"]["xenome"]
+    params:
+            xenome_ref = lambda wildcards: config[samples[wildcards.sample]["Genome"]]["xenome_ref"],
+            fastqs = lambda wildcards: " -i DATA/" + wildcards.sample + "/" + wildcards.sample + suffix_R1 + " -i DATA/" + wildcards.sample + "/" + wildcards.sample + suffix_R2,
+            work_dir = config["work_dir"],
+            batch    = config["cluster"]["job_xenome"],
+            rulename = "xenome",
+            log_dir = lambda wildcards: wildcards.sample + '/log',
+    shell:
+            """
+            module load xenome
+            xenome classify -P {params.xenome_ref} -M -M ${{MEM}} -T ${{THREADS}} --graft-name human --host-name mouse {params.fastqs} --pairs --output-filename-prefix {wildcards.sample}/DATA/{wildcards.sample}
+            awk '{{if (NR % 4 == 1) print "@"$0; else if (NR % 4 == 3) print "+"$0; else print $0 }}' {wildcards.sample}/DATA/{wildcards.sample}_human_1.fastq > {wildcards.sample}/DATA/{wildcards.sample}/{wildcards.sample}.filtered_R1.fastq
+            awk '{{if (NR % 4 == 1) print "@"$0; else if (NR % 4 == 3) print "+"$0; else print $0 }}' {wildcards.sample}/DATA/{wildcards.sample}_both_1.fastq >> {wildcards.sample}/DATA/{wildcards.sample}/{wildcards.sample}.filtered_R1.fastq
+            #awk '{{if (NR % 4 == 1) print "@"$0; else if (NR % 4 == 3) print "+"$0; else print $0 }}' {wildcards.sample}/DATA/{wildcards.sample}_ambiguous_1.fastq >> {wildcards.sample}/DATA/{wildcards.sample}/{wildcards.sample}.filtered_R1.fastq
+            awk '{{if (NR % 4 == 1) print "@"$0; else if (NR % 4 == 3) print "+"$0; else print $0 }}' {wildcards.sample}/DATA/{wildcards.sample}_neither_1.fastq >> {wildcards.sample}/DATA/{wildcards.sample}/{wildcards.sample}.filtered_R1.fastq
+            awk '{{if (NR % 4 == 1) print "@"$0; else if (NR % 4 == 3) print "+"$0; else print $0 }}' {wildcards.sample}/DATA/{wildcards.sample}_human_2.fastq > {wildcards.sample}/DATA/{wildcards.sample}/{wildcards.sample}.filtered_R2.fastq
+            awk '{{if (NR % 4 == 1) print "@"$0; else if (NR % 4 == 3) print "+"$0; else print $0 }}' {wildcards.sample}/DATA/{wildcards.sample}_both_2.fastq >> {wildcards.sample}/DATA/{wildcards.sample}/{wildcards.sample}.filtered_R2.fastq
+            #awk '{{if (NR % 4 == 1) print "@"$0; else if (NR % 4 == 3) print "+"$0; else print $0 }}' {wildcards.sample}/DATA/{wildcards.sample}_ambiguous_2.fastq >> {wildcards.sample}/DATA/{wildcards.sample}/{wildcards.sample}.filtered_R2.fastq
+            awk '{{if (NR % 4 == 1) print "@"$0; else if (NR % 4 == 3) print "+"$0; else print $0 }}' {wildcards.sample}/DATA/{wildcards.sample}_neither_2.fastq >> {wildcards.sample}/DATA/{wildcards.sample}/{wildcards.sample}.filtered_R2.fastq
+            gzip {wildcards.sample}/DATA/{wildcards.sample}/{wildcards.sample}.filtered_R1.fastq
+            gzip {wildcards.sample}/DATA/{wildcards.sample}/{wildcards.sample}.filtered_R2.fastq
+            
+            """
+
+rule xengsort_pe:
+    input:
+            R1="{sample}/DATA/{sample}" + suffix_R1,
+            R2="{sample}/DATA/{sample}" + suffix_R2,
+    output: 
+            "{sample}/DATA/{sample}.filtered" + suffix_R1,
+            "{sample}/DATA/{sample}.filtered" + suffix_R2,
+    version:
+            config["version"]["xenome"]
+    benchmark:
+            "{sample}/benchmark/xengsort.{sample}.benchmark.txt"
+    params:
+            xengsort_ref = lambda wildcards: config[samples[wildcards.sample]["Genome"]]["xengsort_ref"],            
+            work_dir = config["work_dir"],
+            batch    = config["cluster"]["job_xengsort"],
+            rulename = "xengsort_pe",
+            log_dir = lambda wildcards: wildcards.sample + '/log',
+            pipeline_home=pipeline_home
+    shell:
+            """
+            module load xengsort
+            #cd ${{LOCAL}}/
+            xengsort classify --index {params.xengsort_ref} -T ${{THREADS}} --prefix {wildcards.sample}/DATA/{wildcards.sample} --classification new \
+                --fastq <(zcat {params.work_dir}/{input.R1}) --pairs <(zcat {params.work_dir}/{input.R2})
+            perl {params.pipeline_home}/scripts/replaceNbase.pl -i {wildcards.sample}/DATA/{wildcards.sample}-graft.1.fq > {params.work_dir}/{wildcards.sample}/DATA/{wildcards.sample}.filtered_R1.fastq
+            perl {params.pipeline_home}/scripts/replaceNbase.pl -i {wildcards.sample}/DATA/{wildcards.sample}-both.1.fq >> {params.work_dir}/{wildcards.sample}/DATA/{wildcards.sample}.filtered_R1.fastq
+            perl {params.pipeline_home}/scripts/replaceNbase.pl -i {wildcards.sample}/DATA/{wildcards.sample}-neither.1.fq >> {params.work_dir}/{wildcards.sample}/DATA/{wildcards.sample}.filtered_R1.fastq
+            perl {params.pipeline_home}/scripts/replaceNbase.pl -i {wildcards.sample}/DATA/{wildcards.sample}-graft.2.fq > {params.work_dir}/{wildcards.sample}/DATA/{wildcards.sample}.filtered_R2.fastq
+            perl {params.pipeline_home}/scripts/replaceNbase.pl -i {wildcards.sample}/DATA/{wildcards.sample}-both.2.fq >> {params.work_dir}/{wildcards.sample}/DATA/{wildcards.sample}.filtered_R2.fastq
+            perl {params.pipeline_home}/scripts/replaceNbase.pl -i {wildcards.sample}/DATA/{wildcards.sample}-neither.2.fq >> {params.work_dir}/{wildcards.sample}/DATA/{wildcards.sample}.filtered_R2.fastq            
+            gzip {params.work_dir}/{wildcards.sample}/DATA/{wildcards.sample}.filtered_R1.fastq
+            gzip {params.work_dir}/{wildcards.sample}/DATA/{wildcards.sample}.filtered_R2.fastq
+            #host, graft, ambiguous, both, neither
+            cp classification.tsv {params.work_dir}/{wildcards.sample}/DATA/
+            
+            """
+
+rule prepareFASTQ:
+    input: 
+            lambda wildcards: data_dir + "/Sample_" + wildcards.sample + "/Sample_" + wildcards.sample + "_" + wildcards.end + ".fastq.gz"
+    output: 
+            "{sample}/DATA/{sample}_{end}.fastq.gz",    
+    shell:
+            """
+            mkdir -p {wildcards.sample}
+            mkdir -p {wildcards.sample}/log
+            mkdir -p {wildcards.sample}/DATA
+            ln -s {input} {output}
+            """
