@@ -9,7 +9,9 @@ use File::Basename;
 my $type;
 my $data_dir="/data/khanlab/projects/DATA";
 my $sheet;
+
 my $pipeline_home = readpipe("cd `dirname $0`;pwd");
+chomp $pipeline_home;
 my $work_dir="";
 my $dryrun;
 my $dag;
@@ -81,6 +83,10 @@ if (!$sheet){
 	exit;
 }
 
+$work_dir = readpipe("cd $work_dir;pwd");
+chomp $work_dir;
+$data_dir = readpipe("cd $data_dir;pwd");
+chomp $data_dir;
 my $now=`echo \$(date +"%Y%m%d_%H%M%S")`;
 chomp $now;
 my $jobid;
@@ -100,7 +106,7 @@ if ($dryrun){
 		export WORK_DIR=$work_dir
 		export DATA_DIR=$data_dir
 		$snake_command
-		rm -rf $work_dir/pipeline.$type.${sheet_name}.$now.csv
+		rm -f $work_dir/pipeline.$type.${sheet_name}.$now.csv
 		)";
 	print "$cmd\n";
 	exec "$cmd";

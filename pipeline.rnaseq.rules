@@ -374,9 +374,9 @@ rule xengsort_pe:
 
 rule prepareFASTQ:
     input: 
-            lambda wildcards: data_dir + "/Sample_" + wildcards.sample + "/Sample_" + wildcards.sample + "_" + wildcards.end + ".fastq.gz"
+            lambda wildcards: data_dir + "/" + samples[wildcards.sample]["SampleFiles"] + "/" + samples[wildcards.sample]["SampleFiles"] + "_" + wildcards.suffix
     output: 
-            "{sample}/DATA/{sample}_{end}.fastq.gz",    
+            "{sample}/DATA/{sample}_{suffix}",
     shell:
             """
             mkdir -p {wildcards.sample}

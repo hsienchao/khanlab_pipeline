@@ -82,7 +82,7 @@ except Exception as err:
     contents = output.getvalue()
     output.close()
     print(contents)    
-    shell("echo 'RNAseq pipeline has exception: reason " + contents + ". Working Dir:  {work_dir}' |mutt -e 'my_hdr From:chouh@nih.gov' -s 'Khanlab RNAseq Pipeline Status' `whoami`@mail.nih.gov {emails} ")
+    shell("echo 'HiC pipeline has exception: reason " + contents + ". Working Dir:  {work_dir}' |mutt -e 'my_hdr From:chouh@nih.gov' -s 'Khanlab HiC Pipeline Status' `whoami`@mail.nih.gov {emails} ")
     sys.exit()    
     
 onerror:
@@ -217,9 +217,9 @@ rule HiCPro:
 
 rule prepareFASTQ:
     input: 
-            lambda wildcards: data_dir + "/Sample_" + wildcards.sample + "/Sample_" + wildcards.fastq + ".fastq.gz"
+            lambda wildcards: data_dir + "/" + samples[wildcards.sample]["SampleFiles"] + "/" + samples[wildcards.sample]["SampleFiles"] + "_" + wildcards.suffix
     output: 
-            "{sample}/DATA/{sample}/{fastq}.fastq.gz",
+            "{sample}/DATA/{sample}/{sample}_{suffix}"
     shell:
             """
             mkdir -p {wildcards.sample}
