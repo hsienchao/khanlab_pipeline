@@ -4,7 +4,7 @@ This is the implementation of [KhanLab](https://ccr.cancer.gov/Genetics-Branch/j
 
 Khanlab pipeline supports the following NGS data types:
 
-1. [HiC-Pro](#headHiC)
+1. [HiC](#headHiC)
 2. [RNAseq](#headRNAseq)
 3. [ChIPseq](#headChIPseq)
 4. DNAseq
