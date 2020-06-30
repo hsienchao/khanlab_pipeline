@@ -114,7 +114,7 @@ python scripts/sampleToYaml.py -s RH4_Ent6_H3K27ac_HiChIP_HH3JVBGX7 -o RH4_Ent6_
 3. SpikeIn (optional)
 4. SpikeInGenome (optional)
 
-## <a name="expHiC"></a>HiC Example:
+#### <a name="expHiC"></a>HiC Example:
 ```
 samples:
   RH4_D6_H3K27ac_HiChIP_HKJ22BGX7:
@@ -140,13 +140,10 @@ samples:
 ##### DAG example with spike-In
 ![alt tag](dag.hic.svg)
 
-##### DAG example without spike-In
-![alt tag](dag.nospikeIn.hic.svg)
-
-### ChIPseq
+## <a name="headChIPSeq"></a>ChIPseq
 Not implemented yet.
 
-### ## <a name="headRNAseq"></a>RNAseq
+##<a name="headRNAseq"></a>RNAseq
 
 #### RNAseq sample_sheet
 
@@ -158,16 +155,30 @@ Not implemented yet.
 3. Xenograft       (optional)
 4. XenograftGenome (optional)
 
-## <a name="expHiC"></a>HiC Example:
+## <a name="expRNAseq"></a>RNAseq Example:
+
+### Regular RNAseq
+
 ```
 samples:
   NCI0215tumor_T_C2V4TACXX:
     Genome: hg19
     SampleFiles: Sample_NCI0215tumor_T_C2V4TACXX
+    SampleCaptures: ribozero
+```
+
+### Xenograft RNAseq
+
+```
+samples:
+  RH4_total_RNA_PA58_T_H37TWBGXC:
+    Genome: hg19
+    SampleFiles: Sample_RH4_total_RNA_PA58_T_H37TWBGXC
     Xenograft: 'yes'
     XenograftGenome: mm10
     SampleCaptures: ribozero
 ```
+
 #### Output
 
 ##### STAR Output
@@ -200,7 +211,7 @@ samples:
 ![alt tag](dag.rnaseq.svg)
 
 ##### DAG example for Xenograft samples
-![alt tag](dag.xenograft.rnaseq.svg)
+![alt tag](dag.rnaseq.xeno.svg)
 
 ### DNAseq
 Not implemented yet.
