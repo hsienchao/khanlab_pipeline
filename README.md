@@ -143,7 +143,7 @@ samples:
 ## <a name="headChIPSeq"></a>ChIPseq
 Not implemented yet.
 
-##<a name="headRNAseq"></a>RNAseq
+## <a name="headRNAseq"></a>RNAseq
 
 #### RNAseq sample_sheet
 
@@ -215,10 +215,8 @@ samples:
 
 ### DNAseq
 Not implemented yet.
+
 ### Methylseq
 Not implemented yet.
-## Rulegraph
-
-
 
 For questions or comments, please contact: Hsien-chao Chou (chouh@nih.gov)
