@@ -8,9 +8,9 @@ import json
 try:
     samples = config['samples']
 
-    data_dir = os.environ['DATA_DIR']
-    work_dir = os.environ['WORK_DIR']
-    pipeline_home = os.environ['PIPELINE_HOME']
+    data_dir = config['data_dir']
+    work_dir = config['work_dir']
+    pipeline_home = config['pipeline_home']
     shell.prefix("""
     set -e -o pipefail
     module purge
@@ -77,9 +77,9 @@ try:
             else:
                 FASTQS[sample_id].append(sample_id + "/DATA/" + sample_id + suffix_SE)
         for annotation in config["annotations"]:
-            BAMS.append(sample_id + "/" + sample_id + "." + sample["Genome"] + "." + annotation + ".star.genome.bam")
-            BAMS.append(sample_id + "/" + sample_id + "." + sample["Genome"] + "." + annotation + ".star.genome.bam.bai")
-            BAMS.append(sample_id + "/" + sample_id + "." + sample["Genome"] + "." + annotation + ".star.trans.bam")
+            BAMS.append(sample_id + "/STAR_" + sample["Genome"] + "_" + annotation + "/" + sample_id + "." + sample["Genome"] + "." + annotation + ".star.genome.bam")
+            BAMS.append(sample_id + "/STAR_" + sample["Genome"] + "_" + annotation + "/" + sample_id + "." + sample["Genome"] + "." + annotation + ".star.genome.bam.bai")
+            BAMS.append(sample_id + "/STAR_" + sample["Genome"] + "_" + annotation + "/" + sample_id + "." + sample["Genome"] + "." + annotation + ".star.trans.bam")
             RSEM.append(sample_id + "/RSEM_" + sample["Genome"] + "_" + annotation + "/" + sample_id + "." + sample["Genome"] + "." + annotation + ".genes.results")
             RSEM.append(sample_id + "/RSEM_" + sample["Genome"] + "_" + annotation + "/" + sample_id + "." + sample["Genome"] + "." + annotation + ".isoforms.results")
         HLA.append(sample_id + "/HLA/" + sample_id + ".Calls.txt")
@@ -108,9 +108,9 @@ localrules: prepareFASTQ, RNAseq_pipeline, MergeHLA
 rule RNAseq_pipeline:
     input: BAMS,HLA,RSEM
 
-rule rsem:
+rule RSEM:
     input:
-            bam="{sample}/{sample}.{genome}.{annotation}.star.trans.bam"
+            bam="{sample}/STAR_{genome}_{annotation}/{sample}.{genome}.{annotation}.star.trans.bam"
     output:
             "{sample}/RSEM_{genome}_{annotation}/{sample}.{genome}.{annotation}.genes.results",
             "{sample}/RSEM_{genome}_{annotation}/{sample}.{genome}.{annotation}.isoforms.results"
@@ -120,7 +120,7 @@ rule rsem:
             rulename = "RSEM",
             ref = lambda wildcards: config[samples[wildcards.sample]["Genome"]]["rsem_ref_" + wildcards.annotation],
             batch = config['cluster']['job_rsem'],
-            library = lambda wildcards: "--strandedness reverse" if samples[wildcards.sample]['sample_captures'] != "polya" else "",
+            library = lambda wildcards: "--strandedness reverse" if samples[wildcards.sample]['SampleCaptures'] != "polya" else "",
             paired_end = lambda wildcards: "--paired-end" if samples[wildcards.sample]["PE"] else "",
             log_dir = lambda wildcards: wildcards.sample + '/log',
             work_dir = work_dir
@@ -129,7 +129,6 @@ rule rsem:
     shell:
             """
             module load rsem/{version}
-            WORK_DIR=`pwd`
             cd ${{LOCAL}}/
             rsem-calculate-expression --no-bam-output {params.paired_end} -p ${{THREADS}} {params.library} --estimate-rspd \
                 --bam {params.work_dir}/{input.bam} {params.ref} {wildcards.sample}_{wildcards.annotation}
@@ -236,9 +235,9 @@ rule STAR:
     input:
             lambda wildcards: FASTQS[wildcards.sample]
     output: 
-            genome_bam="{sample}/{sample}.{genome}.{annotation}.star.genome.bam",
-            genome_bai="{sample}/{sample}.{genome}.{annotation}.star.genome.bam.bai",
-            trans_bam="{sample}/{sample}.{genome}.{annotation}.star.trans.bam"
+            genome_bam="{sample}/STAR_{genome}_{annotation}/{sample}.{genome}.{annotation}.star.genome.bam",
+            genome_bai="{sample}/STAR_{genome}_{annotation}/{sample}.{genome}.{annotation}.star.genome.bam.bai",
+            trans_bam="{sample}/STAR_{genome}_{annotation}/{sample}.{genome}.{annotation}.star.trans.bam"
     version:
             config["version"]["star"]
     params:
@@ -271,10 +270,16 @@ rule STAR:
                     --outSAMattributes NM \
                     --limitBAMsortRAM 61374258131\
             echo "Finished STAR twopass mapping"
-            mkdir -p {params.work_dir}/mapping
+            mkdir -p {wildcards.sample}/STAR_{wildcards.genome}.{wildcards.annotation}
             mv -f {wildcards.sample}.{wildcards.genome}.{wildcards.annotation}Aligned.sortedByCoord.out.bam {params.work_dir}/{output.genome_bam}
             mv -f {wildcards.sample}.{wildcards.genome}.{wildcards.annotation}Aligned.toTranscriptome.out.bam {params.work_dir}/{output.trans_bam}
-            samtools index {params.work_dir}/{output.genome_bam}            
+            samtools index {params.work_dir}/{output.genome_bam}
+            outf={params.work_dir}/{output.genome_bam}
+            fn="${{outf%.bam}}"
+            samtools flagstat {params.work_dir}/{output.genome_bam} > $fn.flagstat.txt
+            samtools flagstat {params.work_dir}/{output.trans_bam} > {params.work_dir}/{output.trans_bam}.flagstat.txt
+            module load deeptools
+            bamCoverage -b {params.work_dir}/{output.genome_bam} -o $fn.bw
             """
             
 rule xenome_se:
@@ -356,19 +361,19 @@ rule xengsort_pe:
     shell:
             """
             module load xengsort
-            #cd ${{LOCAL}}/
-            xengsort classify --index {params.xengsort_ref} -T ${{THREADS}} --prefix {wildcards.sample}/DATA/{wildcards.sample} --classification new \
+            cd ${{LOCAL}}/
+            xengsort classify --index {params.xengsort_ref} -T ${{THREADS}} --prefix {wildcards.sample} --classification new \
                 --fastq <(zcat {params.work_dir}/{input.R1}) --pairs <(zcat {params.work_dir}/{input.R2})
-            perl {params.pipeline_home}/scripts/replaceNbase.pl -i {wildcards.sample}/DATA/{wildcards.sample}-graft.1.fq > {params.work_dir}/{wildcards.sample}/DATA/{wildcards.sample}.filtered_R1.fastq
-            perl {params.pipeline_home}/scripts/replaceNbase.pl -i {wildcards.sample}/DATA/{wildcards.sample}-both.1.fq >> {params.work_dir}/{wildcards.sample}/DATA/{wildcards.sample}.filtered_R1.fastq
-            perl {params.pipeline_home}/scripts/replaceNbase.pl -i {wildcards.sample}/DATA/{wildcards.sample}-neither.1.fq >> {params.work_dir}/{wildcards.sample}/DATA/{wildcards.sample}.filtered_R1.fastq
-            perl {params.pipeline_home}/scripts/replaceNbase.pl -i {wildcards.sample}/DATA/{wildcards.sample}-graft.2.fq > {params.work_dir}/{wildcards.sample}/DATA/{wildcards.sample}.filtered_R2.fastq
-            perl {params.pipeline_home}/scripts/replaceNbase.pl -i {wildcards.sample}/DATA/{wildcards.sample}-both.2.fq >> {params.work_dir}/{wildcards.sample}/DATA/{wildcards.sample}.filtered_R2.fastq
-            perl {params.pipeline_home}/scripts/replaceNbase.pl -i {wildcards.sample}/DATA/{wildcards.sample}-neither.2.fq >> {params.work_dir}/{wildcards.sample}/DATA/{wildcards.sample}.filtered_R2.fastq            
+            perl {params.pipeline_home}/scripts/replaceNbase.pl -i {wildcards.sample}-graft.1.fq > {params.work_dir}/{wildcards.sample}/DATA/{wildcards.sample}.filtered_R1.fastq
+            #perl {params.pipeline_home}/scripts/replaceNbase.pl -i {wildcards.sample}/DATA/{wildcards.sample}-both.1.fq >> {params.work_dir}/{wildcards.sample}/DATA/{wildcards.sample}.filtered_R1.fastq
+            #perl {params.pipeline_home}/scripts/replaceNbase.pl -i {wildcards.sample}/DATA/{wildcards.sample}-neither.1.fq >> {params.work_dir}/{wildcards.sample}/DATA/{wildcards.sample}.filtered_R1.fastq
+            perl {params.pipeline_home}/scripts/replaceNbase.pl -i {wildcards.sample}-graft.2.fq > {params.work_dir}/{wildcards.sample}/DATA/{wildcards.sample}.filtered_R2.fastq
+            #perl {params.pipeline_home}/scripts/replaceNbase.pl -i {wildcards.sample}/DATA/{wildcards.sample}-both.2.fq >> {params.work_dir}/{wildcards.sample}/DATA/{wildcards.sample}.filtered_R2.fastq
+            #perl {params.pipeline_home}/scripts/replaceNbase.pl -i {wildcards.sample}/DATA/{wildcards.sample}-neither.2.fq >> {params.work_dir}/{wildcards.sample}/DATA/{wildcards.sample}.filtered_R2.fastq            
             gzip {params.work_dir}/{wildcards.sample}/DATA/{wildcards.sample}.filtered_R1.fastq
             gzip {params.work_dir}/{wildcards.sample}/DATA/{wildcards.sample}.filtered_R2.fastq
-            #host, graft, ambiguous, both, neither
-            cp classification.tsv {params.work_dir}/{wildcards.sample}/DATA/
+            echo -e "sample\thost\tgraft\tambiguous\tboth\tneither" > {params.work_dir}/{wildcards.sample}/DATA/classification.tsv
+            cat classification.tsv >> {params.work_dir}/{wildcards.sample}/DATA/classification.tsv
             
             """
 

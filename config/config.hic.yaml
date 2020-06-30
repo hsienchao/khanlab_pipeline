@@ -12,13 +12,21 @@ cluster:
     large: "--partition=ccr,norm    --time=24:00:00 --mem=120G  --cpus-per-task=24  --gres=lscratch:05"    
 version:
     hicpro: "2.11.1"
+hg38:
+    hicpro_config: config/config_hicpro_hg38.txt
+    bowtie2_index: "ucsc.hg38"
+    fragment_bed: "/data/khanlab/projects/HiC/reference_files/dpnii.ucsc.hg38.bed"
+    capture_bed: "virtualHiC_MYOD1gene"
+    juicer_genome: "/data/khanlab/projects/HiC/reference_files/chrom_hg38.sizes"
 hg19:
     hicpro_config: config/config_hicpro_hg19.txt
     bowtie2_index: "ucsc.hg19"
     fragment_bed: "/data/khanlab/projects/HiC/reference_files/dpnii.ucsc.hg19.bed"
     capture_bed: "virtualHiC_MYOD1gene"
-    juicer_genome: "hg19"    
+    juicer_genome: "hg19"
 mm10:
     hicpro_config: config/config_hicpro_mm10.txt
-    bowtie2_index: genome
+    fragment_bed: "/data/khanlab/projects/HiC/reference_files/dpnii.ucsc.mm10.bed"
+    bowtie2_index: mm10
+    juicer_genome: mm10"
 

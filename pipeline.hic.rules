@@ -9,9 +9,9 @@ import json
 try:
     samples = config['samples']
 
-    data_dir = os.environ['DATA_DIR']
-    work_dir = os.environ['WORK_DIR']
-    pipeline_home = os.environ['PIPELINE_HOME']
+    data_dir = config['data_dir']
+    work_dir = config['work_dir']
+    pipeline_home = config['pipeline_home']
 
     configfile: pipeline_home +"/config/config.hic.yaml"
 

@@ -92,19 +92,15 @@ chomp $now;
 my $jobid;
 my $sheet_name = basename($sheet, ".yaml");
 my $snakefile="$pipeline_home/pipeline.$type.rules";
-my $snake_command = "snakemake --directory $work_dir --snakefile $snakefile --configfile $sheet";
+my $snake_command = "snakemake --directory $work_dir --snakefile $snakefile --configfile $sheet --config pipeline_home=$pipeline_home work_dir=$work_dir data_dir=$data_dir now=$now";
 if ($dryrun){
 	$snake_command = $snake_command." -p -r --ri --dryrun";
 	if ($dag) {
-		$snake_command = $snake_command." --dag | dot -Tpdf > dag.$type.pdf";
+		$snake_command = $snake_command." --dag | dot -Tsvg > dag.$type.svg";
 	}	
 	my $cmd = "(
 		module load snakemake/5.13.0
 		module load graphviz
-		export NOW=$now
-		export PIPELINE_HOME=$pipeline_home
-		export WORK_DIR=$work_dir
-		export DATA_DIR=$data_dir
 		$snake_command
 		rm -f $work_dir/pipeline.$type.${sheet_name}.$now.csv
 		)";
@@ -115,7 +111,7 @@ else{
 	system("mkdir -p $work_dir/log");
 	system("chmod g+rw $work_dir/log");
 	$snake_command = $snake_command." --jobname {params.rulename}.{jobid} --nolock  --ri -k -p -r -j 1000 --cores 150 --jobscript $pipeline_home/scripts/jobscript.sh --cluster \"sbatch -o {params.log_dir}/{params.rulename}.%j.o -e {params.log_dir}/{params.rulename}.%j.e {params.batch}\"";
-	$jobid = readpipe("module load snakemake/5.13.0;sbatch -e $work_dir/log/pipeline.$type.${sheet_name}_${now}.%j.e -o $work_dir/log/pipeline.$type.${sheet_name}_${now}.%j.o --export=NOW=$now,WORK_DIR=$work_dir,PIPELINE_HOME=$pipeline_home,DATA_DIR=$data_dir --cpus-per-task=2 --mem=8G --partition=ccr,norm --time=4-00:00:00 $snake_command");
+	$jobid = readpipe("module load snakemake/5.13.0;sbatch -J ${type}_pipeline -e $work_dir/log/pipeline.$type.${sheet_name}_${now}.%j.e -o $work_dir/log/pipeline.$type.${sheet_name}_${now}.%j.o --cpus-per-task=1 --mem=8G --partition=ccr,norm --time=4-00:00:00 $snake_command");
 	
 }
 
