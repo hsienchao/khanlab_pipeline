@@ -1,0 +1,56 @@
+common:
+    pipeline_version: "v0.1"
+    emails: " -c chouh@nih.gov"
+    FASTQ_prefix: "Sample_"
+    FASTQ_suffix_R1: "_R1.fastq.gz"
+    FASTQ_suffix_R2: "_R2.fastq.gz"
+    FASTQ_suffix_SE: "_R1.fastq.gz"
+    app_home: "/data/khanlab/apps"    
+cluster:
+    small: "--partition=quick,norm    --time=03:00:00 --mem=08G  --cpus-per-task=1   --gres=lscratch:05"
+    subflow: "--partition=quick,norm    --time=2-00:00:00 --mem=08G  --cpus-per-task=1   --gres=lscratch:05"
+    medium: "--partition=ccr,norm    --time=24:00:00 --mem=32G  --cpus-per-task=8  --gres=lscratch:05"
+    large: "--partition=ccr,norm    --time=24:00:00 --mem=120G  --cpus-per-task=24  --gres=lscratch:05"
+    job_bwa: "--partition=ccr,norm --time=10:00:00 --mem=80G  --cpus-per-task=40  --gres=lscratch:200"
+    job_macs2: "--partition=ccr,norm --time=10:00:00 --mem=32G  --cpus-per-task=1  --gres=lscratch:100"
+    job_rose: "--partition=ccr,norm --time=10:00:00 --mem=16G  --cpus-per-task=1  --gres=lscratch:100"
+    job_motif: "--partition=ccr,norm --time=10:00:00 --mem=48G  --cpus-per-task=24  --gres=lscratch:100"
+version:
+    bwa: "0.7.17"
+    samtools: "1.9"
+    picard: "2.22.2"
+    macs: "2.2.6"
+    deeptools: "3.4.2"
+    igvtools: "2.8.2"
+    R: "4.0.0"
+    homer: "4.11.1"
+    rose: "20200624"
+    snakemake: "5.13.0"
+hg38:
+    bwa_index: "/data/Clinomics/Ref/khanlab/Index/BWAIndex/hg38"
+    macs2_gsize: 2.7e9
+hg19:
+    bwa_index: "/data/Clinomics/Ref/khanlab/Index/BWAIndex/hg19"
+    black_list: ref/wgEncodeDacMapabilityConsensusExcludable.bed
+    tad_file: ref/tad.hg19.bed
+    exclude_chr_list: ref/exclude_chr_list.txt
+    macs2_gsize: 2.7e9
+default_lib_length: 148
+min_mapq: "30"
+bin_size: "25"
+smooth_size: "75"
+macs2:
+    peak_types: ["narrow","broad"]
+    qvalues: ["0.05","0.01"]
+rose:
+    tss_distance: 2500
+    stitch_distance: 12500
+homer:
+    motif_size: 1000
+eden:
+    TPM_cutoff: 2
+    super_loci_distance_cutoff: 300000
+    nearest_gene_distance_cutoff: 1500000
+    exp_file: cufflinks_UCSC/genes.fpkm_tracking
+    
+

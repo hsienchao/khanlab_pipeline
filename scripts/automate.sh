@@ -2,9 +2,11 @@
 
 sample_id=$1
 
+current_dir=`pwd`
 d=`dirname $0`
 cd $d/..
 pipeline_home=`pwd`
+cd $current_dir
 sample_sheet_home=/data/khanlab/projects/pipeline_production/sample_sheets
 processed_data_home=/data/khanlab/projects/pipeline_production/processed_DATA
 
@@ -22,8 +24,10 @@ fi
 module load python/3.6
 
 type=`python $pipeline_home/scripts/sampleToYaml.py -s $sample_id -o ${sample_id}.yaml`
+#echo $type
 yaml_file=$sample_sheet_home/$type/${sample_id}.yaml
 if [[ "$type" == "hic" || "$type" == "chipseq" || "$type" == "rnaseq" ]];then
+	echo "mv ${sample_id}.yaml $yaml_file"
 	mv ${sample_id}.yaml $yaml_file
 	perl $pipeline_home/launch -t $type -w $processed_data_home/$type -s $yaml_file
 else

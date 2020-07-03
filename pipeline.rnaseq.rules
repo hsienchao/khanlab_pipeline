@@ -260,20 +260,21 @@ rule STAR:
                     --genomeDir {params.star_ref} \
                     --readFilesIn {params.fastqs} \
                     --readFilesCommand zcat\
-                    --outSAMtype BAM SortedByCoordinate\
+                    --outSAMtype BAM Unsorted\
                     --twopassMode Basic \
                     --outFileNamePrefix {wildcards.sample}.{wildcards.genome}.{wildcards.annotation} \
                     --runThreadN ${{THREADS}} \
                     --outFilterMismatchNmax 2\
                     --outSAMunmapped Within \
                     --quantMode TranscriptomeSAM \
-                    --outSAMattributes NM \
-                    --limitBAMsortRAM 61374258131\
+                    --outSAMattributes NM
             echo "Finished STAR twopass mapping"
             mkdir -p {wildcards.sample}/STAR_{wildcards.genome}.{wildcards.annotation}
-            mv -f {wildcards.sample}.{wildcards.genome}.{wildcards.annotation}Aligned.sortedByCoord.out.bam {params.work_dir}/{output.genome_bam}
+            #
             mv -f {wildcards.sample}.{wildcards.genome}.{wildcards.annotation}Aligned.toTranscriptome.out.bam {params.work_dir}/{output.trans_bam}
-            samtools index {params.work_dir}/{output.genome_bam}
+            samtools sort -@ ${{THREADS}} -o {wildcards.sample}.{wildcards.genome}.{wildcards.annotation}Aligned.sortedByCoord.out.bam -O bam {wildcards.sample}.{wildcards.genome}.{wildcards.annotation}Aligned.out.bam
+            mv -f {wildcards.sample}.{wildcards.genome}.{wildcards.annotation}Aligned.sortedByCoord.out.bam {params.work_dir}/{output.genome_bam}
+            samtools index -@ ${{THREADS}} {params.work_dir}/{output.genome_bam}
             outf={params.work_dir}/{output.genome_bam}
             fn="${{outf%.bam}}"
             samtools flagstat {params.work_dir}/{output.genome_bam} > $fn.flagstat.txt

@@ -9,7 +9,7 @@ common:
 cluster:
     small: "--partition=quick,norm    --time=03:00:00 --mem=02G  --cpus-per-task=1   --gres=lscratch:02"
     medium: "--partition=ccr,norm    --time=24:00:00 --mem=32G  --cpus-per-task=8  --gres=lscratch:05"
-    large: "--partition=ccr,norm    --time=24:00:00 --mem=120G  --cpus-per-task=24  --gres=lscratch:05"    
+    large: "--partition=ccr,norm    --time=2-00:00:00 --mem=120G  --cpus-per-task=24  --gres=lscratch:200"
 version:
     hicpro: "2.11.1"
 hg38:

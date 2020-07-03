@@ -70,7 +70,7 @@ if (!$type || ($type ne "hic" && $type ne "chipseq" && $type ne "rnaseq" && $typ
 	print STDERR "\t Possible values are: hic,chipseq,ranseq,dnaseq\n";
 	exit;
 }
-if ($type ne "hic" && $type ne "rnaseq") {
+if ($type ne "hic" && $type ne "rnaseq" && $type ne "chipseq") {
 	print STDERR "$type not implemented yet";
 	exit;
 }

@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import re
 import requests
 import os,subprocess
@@ -11,8 +12,8 @@ def main(args):
     #User input:
     #1. sample_id
     
-    sample_id = args.sample
-    out_file = args.out    
+    sample_id = args.sample.strip()
+    out_file = args.out.strip()
     masterfile_dir="/data/Clinomics/MasterFiles"
     master_files = ["Sequencing_Tracking_Master_db.txt","ClinOmics_Sequencing_Master_File_db.txt","SequencingMasterFile_OutsidePatients_db.txt"]
     hic_master_file="/data/khanlab/projects/HiC/manage_samples/HiC_sample_sheet.xlsx"
@@ -79,7 +80,7 @@ def main(args):
        fo = open(out_file,"w")
        fo.write(yaml.dump({"samples":{sample_id : master_sample}}))
        fo.close()
-       print("rnaseq")       
+       print("rnaseq")
     
 parser = argparse.ArgumentParser(description='Generate YAML sample sheet.')
 parser.add_argument("--sample", "-s", metavar="SAMPLE_ID", help="Sample ID (Library_id)_(FCID)")
