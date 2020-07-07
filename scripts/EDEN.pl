@@ -23,7 +23,7 @@ my $super_loci_cutoff;
 my $nearest_gene_loci_cutoff = 500000;
 my $split_col;
 my $max_dist = 249250621;              #this is the max chromosome length
-my $gene_coor_file = dirname($0)."/gene_coordinates.txt";
+my $gene_coor_file = dirname($0)."../ref/hg19.genes.bed";
 my $matrix_col = 1;
 my $matrix_header = "";
 my $usage = <<__EOUSAGE__;

@@ -35,6 +35,7 @@ hg19:
     tad_file: ref/tad.hg19.bed
     exclude_chr_list: ref/exclude_chr_list.txt
     macs2_gsize: 2.7e9
+    gene_bed: ref/hg19.genes.bed
 default_lib_length: 148
 min_mapq: "30"
 bin_size: "25"
@@ -48,9 +49,15 @@ rose:
 homer:
     motif_size: 1000
 eden:
-    TPM_cutoff: 2
+    TPM_cutoff: 4
     super_loci_distance_cutoff: 300000
     nearest_gene_distance_cutoff: 1500000
     exp_file: cufflinks_UCSC/genes.fpkm_tracking
+coltron:
+    path: /data/khanlab/apps/coltron/1.0.2/bin/coltron_berkley
+    path_noexp: /data/khanlab/apps/coltron/1.0.2/bin/coltron
+    nearest_tf_distance_cutoff: 500000
+    exp_cutoff: 4
+    exp_type: TPM
     
 

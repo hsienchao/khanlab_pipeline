@@ -44,6 +44,7 @@ try:
     MOTIFS = []
     EDENS = []
     RNAseq = []
+    COLTRONS = []
     MACS_BAMS = {}
     for sample_id, sample in samples.items():
         SAMPLES.append(sample_id)
@@ -82,23 +83,31 @@ try:
         MACS_BAMS[sample_id].append(sample_id + "/" + sample_id + ".dd.bam")
         BWS.append(sample_id + "/" + sample_id + "." + config["bin_size"] + ".RPM.bw")
         TDFS.append(sample_id + "/" + sample_id + "." + config["bin_size"] + ".RPM.tdf")
-        SPP.append(sample_id + "/spp/" + sample_id + ".spp.pdf")
-        SPP.append(sample_id + "/spp/" + sample_id + ".spp.txt")
+        SPP.append(sample_id + "/qc/" + sample_id + ".spp.pdf")
+        SPP.append(sample_id + "/qc/" + sample_id + ".spp.txt")
         has_exp = sample["PairedRNA_SAMPLE_ID"] != "."
         if has_exp:
             RNAseq.append(sample_id + "/RNAseq/" + sample["PairedRNA_SAMPLE_ID"] + "." +  sample["Genome"] + ".ucsc.genes.TPM.txt")
         for cutoff in config["macs2"]["qvalues"]:
             peak_type = sample["PeakCalling"]
             MACS2.append(sample_id + "/MACS_Out_q_" + cutoff + "/" + sample_id + "_peaks." + peak_type + "Peak.nobl.bed")
-            MACS2.append(sample_id + "/MACS_Out_q_" + cutoff + "/" + sample_id + "." + peak_type + "_summits.nobl.bed")
+            if peak_type == "narrow":
+                MACS2.append(sample_id + "/MACS_Out_q_" + cutoff + "/" + sample_id + "." + peak_type + "_summits.bed")
+                MOTIFS.append(sample_id + "/MACS_Out_q_" + cutoff + "/motif_" + peak_type + "/knownResults.html")
             if has_exp:
                 EDENS.append(sample_id + "/MACS_Out_q_" + cutoff + "/" + sample_id + "_peaks." + peak_type + "Peak.nobl_TPM" + str(config["eden"]["TPM_cutoff"]) + "_multi-genes.txt")
             ANNOTATION.append(sample_id + "/MACS_Out_q_" + cutoff + "/" + sample_id + "_peaks." + peak_type + "Peak.nobl.bed.annotation.txt")
             ANNOTATION.append(sample_id + "/MACS_Out_q_" + cutoff + "/" + sample_id + "_peaks." +peak_type + "Peak.nobl.bed.annotation.summary")
-            MOTIFS.append(sample_id + "/MACS_Out_q_" + cutoff + "/motif_" + peak_type + "/knownResults.html")
+            
             if sample["EnhancePipe"] == "yes":
                 ROSE.append(sample_id + "/MACS_Out_q_" + cutoff + "/ROSE_out_" + str(config["rose"]["stitch_distance"]) + "/" + sample_id + "_peaks_AllEnhancers.table.super.bed")
                 ROSE.append(sample_id + "/MACS_Out_q_" + cutoff + "/ROSE_out_" + str(config["rose"]["stitch_distance"]) + "/" + sample_id + "_peaks_AllEnhancers.table.regular.bed")
+                if peak_type == "narrow":
+                    ROSE.append(sample_id + "/MACS_Out_q_" + cutoff + "/ROSE_out_" + str(config["rose"]["stitch_distance"]) + "/" + sample_id + ".super_summits.bed")
+                    ROSE.append(sample_id + "/MACS_Out_q_" + cutoff + "/ROSE_out_" + str(config["rose"]["stitch_distance"]) + "/" + sample_id + ".regular_summits.bed")
+                    MOTIFS.append(sample_id + "/MACS_Out_q_" + cutoff + "/ROSE_out_" + str(config["rose"]["stitch_distance"]) + "/motif_super/knownResults.html")
+                    MOTIFS.append(sample_id + "/MACS_Out_q_" + cutoff + "/ROSE_out_" + str(config["rose"]["stitch_distance"]) + "/motif_regular/knownResults.html")
+                COLTRONS.append(sample_id + "/MACS_Out_q_" + cutoff + "/ROSE_out_" + str(config["rose"]["stitch_distance"]) + "/coltron/" + sample_id + "_CLIQUES_RANKED.txt")
                 if has_exp:
                     EDENS.append(sample_id + "/MACS_Out_q_" + cutoff + "/ROSE_out_" + str(config["rose"]["stitch_distance"]) + "/" + sample_id + "_peaks_AllEnhancers.table.super_TPM" + str(config["eden"]["TPM_cutoff"]) + "_multi-genes.txt")
                     EDENS.append(sample_id + "/MACS_Out_q_" + cutoff + "/ROSE_out_" + str(config["rose"]["stitch_distance"]) + "/" + sample_id + "_peaks_AllEnhancers.table.regular_TPM" + str(config["eden"]["TPM_cutoff"]) + "_multi-genes.txt")                
@@ -144,10 +153,10 @@ onsuccess:
     shell("for s in {SAMPLES};do touch {work_dir}/${{s}}/successful.txt;chgrp -R khanlab {work_dir}/${{s}};done")
     print("Workflow finished, no error")
     
-localrules: prepareFASTQ, ChIPseq_pipeline, EDEN
+localrules: prepareFASTQ, ChIPseq_pipeline, EDEN, prepareSummit
 
 rule ChIPseq_pipeline:
-    input: BAMS,BWS,TDFS,SPP,MACS2,ANNOTATION,ROSE,MOTIFS,EDENS, RNAseq
+    input: BAMS,BWS,TDFS,SPP,MACS2,ANNOTATION,ROSE,MOTIFS,EDENS, RNAseq, COLTRONS
 
 rule RNAseq_pipeline:
     input:
@@ -166,17 +175,42 @@ rule RNAseq_pipeline:
             rulename = "RNAseq_pipeline",
             rnaseq_sample = lambda wildcards: samples[wildcards.sample]["PairedRNA_SAMPLE_ID"],
             log_dir = lambda wildcards: wildcards.sample + '/log',
+            gene_bed = lambda wildcards: config[samples[wildcards.sample]["Genome"]]["gene_bed"]
     shell:
             """
             mkdir -p {wildcards.sample}/RNAseq
             module load python/3.6
             python {params.pipeline_home}/scripts/sampleToYaml.py -s {params.rnaseq_sample} -o {wildcards.sample}/RNAseq/{params.rnaseq_sample}.rnaseq.yaml
             module load snakemake/{version}
-            snakemake --directory {params.work_dir}/../rnaseq --snakefile {params.pipeline_home}/pipeline.rnaseq.rules --configfile {wildcards.sample}/RNAseq/{params.rnaseq_sample}.rnaseq.yaml --config pipeline_home={params.pipeline_home} work_dir={params.work_dir}/../rnaseq data_dir={params.data_dir} now={params.now} \
-                --jobname {{params.rulename}}.{{jobid}} --nolock  --ri -k -p -r -j 1000 --cores 150 --jobscript {params.pipeline_home}/scripts/jobscript.sh --cluster "sbatch -o \
-                {{params.log_dir}}/{{params.rulename}}.%j.o -e {{params.log_dir}}/{{params.rulename}}.%j.e {{params.batch}}"
+            {params.pipeline_home}/launch -t rnaseq -w {params.work_dir}/../rnaseq -s {wildcards.sample}/RNAseq/{params.rnaseq_sample}.rnaseq.yaml -local
             echo -e "Chr\\tStart\\tStop\\tGeneID\\tTPM" > {output}
-            join -t $'\\t' -1 5 -2 1 <(grep -v CHROMOSOME {params.pipeline_home}/ref/hg19.genes.txt|sort -k5) <(grep -v {params.work_dir}/../rnaseq/{params.rnaseq_sample}/RSEM_{params.genome}_ucsc/{params.rnaseq_sample}.{params.genome}.ucsc.genes.results|sort -k1) | awk -F'\\t' 'OFS="\\t"{{print $2,$3,$4,$1,$11}}' | sort -k 1,1 -k2,2n >> {output}
+            join -t $'\\t' -1 4 -2 1 <(sort -k4,4 {params.pipeline_home}/ref/{params.gene_bed} ) <(grep -v gene_id {params.work_dir}/../rnaseq/{params.rnaseq_sample}/RSEM_{params.genome}_ucsc/{params.rnaseq_sample}.{params.genome}.ucsc.genes.results|sort -k1,1) | awk -F'\\t' 'OFS="\\t"{{print $2,$3,$4,$1,$10}}' | sort -k 1,1 -k2,2n >> {output}
+            """
+
+rule coltron:
+    input:
+            rose_out="{sample}/{macs_dir}/{rose_dir}/{sample}_peaks_AllEnhancers.table.txt",
+            bam="{sample}/{sample}.dd.bam",
+            exp_file=lambda wildcards: wildcards.sample + "/RNAseq/" +  samples[wildcards.sample]["PairedRNA_SAMPLE_ID"] + "." + samples[wildcards.sample]["Genome"] + ".ucsc.genes.TPM.txt"
+    output:
+            "{sample}/{macs_dir}/{rose_dir}/coltron/{sample}_CLIQUES_RANKED.txt"
+    benchmark:
+            "{sample}/benchmark/coltron.{sample}.{macs_dir}.{rose_dir}.benchmark.txt"
+    params:
+            work_dir = config["work_dir"],
+            batch    = config["cluster"]["small"],
+            pipeline_home = config["pipeline_home"],
+            coltron_bin = lambda wildcards: config["coltron"]["path"] if samples[wildcards.sample]["PairedRNA_SAMPLE_ID"] != "." else config["coltron"]["path_noexp"],
+            genome = lambda wildcards: samples[wildcards.sample]["Genome"].upper(),
+            nearest_tf_distance_cutoff = str(config["coltron"]["nearest_tf_distance_cutoff"]),
+            exp_cutoff=str(config["coltron"]["nearest_tf_distance_cutoff"]),
+            rulename = "coltron",
+            log_dir = lambda wildcards: wildcards.sample + '/log',
+    shell:
+            """
+            {params.coltron_bin} -e {input.rose_out} -b {input.bam} -g {params.genome} -o {wildcards.sample}/{wildcards.macs_dir}/{wildcards.rose_dir}/coltron/ \
+                -n {wildcards.sample} -d {params.nearest_tf_distance_cutoff} -a {input.exp_file} -x {params.exp_cutoff}
+            
             """
 
 rule EDEN:
@@ -196,23 +230,27 @@ rule EDEN:
             super_loci_distance_cutoff = str(config["eden"]["super_loci_distance_cutoff"]),
             nearest_gene_distance_cutoff = str(config["eden"]["nearest_gene_distance_cutoff"]),
             exp_file = lambda wildcards: samples[wildcards.sample]["PairedRNA_SAMPLE_ID"] + ".gene.TPM.txt",
+            gene_bed = lambda wildcards: config[samples[wildcards.sample]["Genome"]]["gene_bed"],
             rulename = "eden",
             log_dir = lambda wildcards: wildcards.sample + '/log',
     shell:
             """
-            {params.pipeline_home}/scripts/EDEN.pl -e {input.exp_file} -o {wildcards.sample}/MACS_Out_{wildcards.folders} -x {wildcards.prefix} -t TPM -c -d {params.pipeline_home}/{params.tad_file} -b {input.bed} -f {wildcards.TPM_cutoff} \
-                -s {params.super_loci_distance_cutoff} -n {params.nearest_gene_distance_cutoff}
+            out_dir=$(dirname "{output}")
+            {params.pipeline_home}/scripts/EDEN.pl -e {input.exp_file} -o ${{out_dir}} -x {wildcards.prefix} -t TPM -c -d {params.pipeline_home}/{params.tad_file} -b {input.bed} -f {wildcards.TPM_cutoff} \
+                -s {params.super_loci_distance_cutoff} -n {params.nearest_gene_distance_cutoff} -r {params.pipeline_home}/{params.gene_bed}
             """
             
 rule findMotif:
-    input:            
-            "{sample}/MACS_Out_q_{cutoff}/{sample}.{peak_type}_summits.nobl.bed",
+    input:
+            "{sample}/{folders}/{sample}.{peak_type}_summits.bed",
     output:
-            "{sample}/MACS_Out_q_{cutoff}/motif_{peak_type}/knownResults.html",
+            "{sample}/{folders}/motif_{peak_type}/knownResults.html",
+    wildcard_constraints:
+            folders = "MACS.+"
     version:
             config["version"]["homer"]
     benchmark:
-            "{sample}/benchmark/findMotif.{sample}.{cutoff}.{peak_type}.benchmark.txt"
+            "{sample}/benchmark/findMotif.{sample}.{folders}.{peak_type}.benchmark.txt"
     params:
             work_dir = config["work_dir"],
             batch    = config["cluster"]["job_motif"],
@@ -224,16 +262,22 @@ rule findMotif:
     shell:
             """  
             module load homer/{version}
-            findMotifsGenome.pl {input} {params.genome} {wildcards.sample}/MACS_Out_q_{wildcards.cutoff}/motif_{wildcards.peak_type} -size {params.motif_size} -p ${{THREADS}} -preparsedDir {params.pipeline_home}/ref/preparsedDir
+            out_dir=$(dirname {output})
+            findMotifsGenome.pl {input} {params.genome} ${{out_dir}} -size {params.motif_size} -p ${{THREADS}} -preparsedDir {params.pipeline_home}/ref/preparsedDir
             """
 rule rose:
     input:
             bed=lambda wildcards: wildcards.sample + "/MACS_Out_q_" + wildcards.cutoff + "/" + wildcards.sample + "_peaks." + samples[wildcards.sample]["PeakCalling"] + "Peak.nobl.bed",
+            summit=lambda wildcards: wildcards.sample + "/MACS_Out_q_" + wildcards.cutoff + "/" + wildcards.sample + "." + samples[wildcards.sample]["PeakCalling"] + "_summits.bed",
             bam="{sample}/{sample}.dd.bam"
     output:
             rose_out="{sample}/MACS_Out_q_{cutoff}/ROSE_out_{stitch_distance}/{sample}_peaks_AllEnhancers.table.txt",
             se_table="{sample}/MACS_Out_q_{cutoff}/ROSE_out_{stitch_distance}/{sample}_peaks_AllEnhancers.table.super.bed",
             re_table="{sample}/MACS_Out_q_{cutoff}/ROSE_out_{stitch_distance}/{sample}_peaks_AllEnhancers.table.regular.bed",
+            se_great="{sample}/MACS_Out_q_{cutoff}/ROSE_out_{stitch_distance}/{sample}_peaks_AllEnhancers.table.super.GREAT.bed",
+            re_great="{sample}/MACS_Out_q_{cutoff}/ROSE_out_{stitch_distance}/{sample}_peaks_AllEnhancers.table.regular.GREAT.bed",
+            se_summit="{sample}/MACS_Out_q_{cutoff}/ROSE_out_{stitch_distance}/{sample}.super_summits.bed",
+            re_summit="{sample}/MACS_Out_q_{cutoff}/ROSE_out_{stitch_distance}/{sample}.regular_summits.bed",
     version:
             config["version"]["rose"]
     benchmark:
@@ -251,9 +295,15 @@ rule rose:
             """  
             module load rose/{version}
             module load python/2.7
+            module load bedtools
             cd $(dirname `which ROSE_main.py`)
-            ROSE_main.py -i {params.work_dir}/{input.bed} -g {params.genome} -r {params.work_dir}/{input.bam} {params.input_control} -t {params.tss_distance} -s {wildcards.stitch_distance} -o {params.work_dir}/{wildcards.sample}/MACS_Out_q_{cutoff}/ROSE_out_{wildcards.stitch_distance}
-            {params.pipeline_home}/scripts/roseTable2Bed.sh {params.work_dir}/{output.rose_out} {params.work_dir}/{output.re_table} {params.work_dir}/{output.se_table} 
+            ROSE_main.py -i {params.work_dir}/{input.bed} -g {params.genome} -r {params.work_dir}/{input.bam} {params.input_control} -t {params.tss_distance} -s {wildcards.stitch_distance} -o {params.work_dir}/{wildcards.sample}/MACS_Out_q_{wildcards.cutoff}/ROSE_out_{wildcards.stitch_distance}
+            {params.pipeline_home}/scripts/roseTable2Bed.sh {params.work_dir}/{output.rose_out} {params.work_dir}/{output.re_table} {params.work_dir}/{output.se_table}
+            cd {params.work_dir}
+            cut -f1-3 {output.se_table} > {output.se_great}
+            cut -f1-3 {output.re_table} > {output.re_great}
+            bedtools intersect -wa -a {input.summit} -b {output.se_table} > {output.se_summit}
+            bedtools intersect -wa -a {input.summit} -b {output.re_table} > {output.re_summit}
             """
 
 rule peakAnnotation:
@@ -278,7 +328,30 @@ rule peakAnnotation:
             module load homer/{version}
             annotatePeaks.pl {input} {params.genome} -annStats {output.annotation_summary} > {output.annotation}
             """
-    
+
+rule prepareSummit:
+    input:
+            nobl="{sample}/MACS_Out_q_{cutoff}/{sample}_peaks.{peak_type}Peak.nobl.bed",
+    output:
+            summit="{sample}/MACS_Out_q_{cutoff}/{sample}.{peak_type}_summits.bed",
+    params:
+            work_dir = config["work_dir"],
+            batch    = config["cluster"]["job_macs2"],
+            pipeline_home=config["pipeline_home"],
+            rulename = "prepareSummit",
+            black_list= lambda wildcards: config["pipeline_home"] + "/" + config[samples[wildcards.sample]["Genome"]]["black_list"],
+            exclude_chr_list = lambda wildcards: config["pipeline_home"] + "/" + config[samples[wildcards.sample]["Genome"]]["exclude_chr_list"],
+            log_dir = lambda wildcards: wildcards.sample + '/log',
+    shell:
+            """  
+            module load bedtools
+            #remove unused chromosomes and blacklist in summit
+            {params.pipeline_home}/scripts/removeChr.pl -i {wildcards.sample}/MACS_Out_q_{wildcards.cutoff}/{wildcards.sample}_summits.bed -o {output.summit}.tmp -l {params.exclude_chr_list}
+            sed -i 's/{wildcards.sample}//g' {output.summit}.tmp
+            bedtools intersect -a {output.summit}.tmp -b {params.black_list} -v > {output.summit}
+            rm {output.summit}.tmp
+            """
+            
 rule macs2:
     input:
             lambda wildcards: MACS_BAMS[wildcards.sample]
@@ -287,8 +360,8 @@ rule macs2:
             renamed_peak="{sample}/MACS_Out_q_{cutoff}/{sample}_peaks.{peak_type}Peak.bed",
             nobl="{sample}/MACS_Out_q_{cutoff}/{sample}_peaks.{peak_type}Peak.nobl.bed",
             great="{sample}/MACS_Out_q_{cutoff}/{sample}_peaks.{peak_type}Peak.nobl.GREAT.bed",
-            summit="{sample}/MACS_Out_q_{cutoff}/{sample}.{peak_type}_summits.bed",
-            summit_nobl="{sample}/MACS_Out_q_{cutoff}/{sample}.{peak_type}_summits.nobl.bed",
+    wildcard_constraints:
+            cutoff = "\d\.\d+"
     version:
             config["version"]["macs"]
     benchmark:
@@ -316,19 +389,15 @@ rule macs2:
             {params.pipeline_home}/scripts/removeChr.pl -i {output.peak} -o {output.renamed_peak} -l {params.exclude_chr_list}
             sed -i 's/{wildcards.sample}//g' {output.renamed_peak}
             bedtools intersect -a {output.renamed_peak} -b {params.black_list} -v > {output.nobl}
-            cut -f1-3 {output.nobl} > {output.great}
-            #remove unused chromosomes and blacklist in summit
-            {params.pipeline_home}/scripts/removeChr.pl -i {wildcards.sample}/MACS_Out_q_{wildcards.cutoff}/{wildcards.sample}_summits.bed -o {output.summit} -l {params.exclude_chr_list}
-            sed -i 's/{wildcards.sample}//g' {output.summit}
-            bedtools intersect -a {output.summit} -b {params.black_list} -v > {output.summit_nobl}
+            cut -f1-3 {output.nobl} > {output.great}            
             """
 
 rule crossCorrelation:
     input:
             "{sample}/{sample}.dd.bam"
     output:
-            pdf="{sample}/spp/{sample}.spp.pdf",
-            txt="{sample}/spp/{sample}.spp.txt"
+            pdf="{sample}/qc/{sample}.spp.pdf",
+            txt="{sample}/qc/{sample}.spp.txt"
     version:
             config["version"]["R"]
     benchmark:

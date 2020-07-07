@@ -14,6 +14,7 @@ my $pipeline_home = readpipe("cd `dirname $0`;pwd");
 chomp $pipeline_home;
 my $work_dir="";
 my $dryrun;
+my $local;
 my $dag;
 my $help;
 
@@ -39,6 +40,7 @@ required options:
 optional options:  
   -datadir|d  <string>  FASTQ file location (default: $data_dir)
   -dryrun               Dryrun only
+  -local                Run snakemake locally
   -dag                  Generate DAG PDF
 
 Example
@@ -50,13 +52,14 @@ For questions or comments, please contact: Hsienchao Chou <chouh\@nih.gov>
 __EOUSAGE__
 
 GetOptions(
-		'dryrun'	=>\$dryrun,
-		'dag'	=>\$dag,
+		'dryrun'        =>\$dryrun,
+		'local'         =>\$local,
+		'dag'           =>\$dag,
 		'type|t=s'      =>\$type,
 		'datadir|d=s'   =>\$data_dir,
 		'workdir|w=s'   =>\$work_dir,
-		'sheet|s=s'   	=>\$sheet,
-		'help|h'      	=>\$help,
+		'sheet|s=s'     =>\$sheet,
+		'help|h'        =>\$help,
 	  );
 
 if ($help) {
@@ -111,8 +114,11 @@ else{
 	system("mkdir -p $work_dir/log");
 	system("chmod g+rw $work_dir/log");
 	$snake_command = $snake_command." --jobname {params.rulename}.{jobid} --nolock  --ri -k -p -r -j 1000 --cores 150 --jobscript $pipeline_home/scripts/jobscript.sh --cluster \"sbatch -o {params.log_dir}/{params.rulename}.%j.o -e {params.log_dir}/{params.rulename}.%j.e {params.batch}\"";
-	$jobid = readpipe("module load snakemake/5.13.0;sbatch -J ${type}_pipeline -e $work_dir/log/pipeline.$type.${sheet_name}_${now}.%j.e -o $work_dir/log/pipeline.$type.${sheet_name}_${now}.%j.o --cpus-per-task=1 --mem=8G --partition=ccr,norm --time=4-00:00:00 $snake_command");
-	
+	if ($local) {
+		system($snake_command);
+	} else {
+		$jobid = readpipe("module load snakemake/5.13.0;sbatch -J ${type}_pipeline -e $work_dir/log/pipeline.$type.${sheet_name}_${now}.%j.e -o $work_dir/log/pipeline.$type.${sheet_name}_${now}.%j.o --cpus-per-task=1 --mem=8G --partition=ccr,norm --time=4-00:00:00 $snake_command");
+	}
 }
 
 chomp $jobid;
