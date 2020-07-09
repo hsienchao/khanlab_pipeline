@@ -24,11 +24,17 @@ version:
     igvtools: "2.8.2"
     R: "4.0.0"
     homer: "4.11.1"
-    rose: "20200624"
+    rose: "20200707"
     snakemake: "5.13.0"
 hg38:
     bwa_index: "/data/Clinomics/Ref/khanlab/Index/BWAIndex/hg38"
-    macs2_gsize: 2.7e9
+    black_list: ref/ENCFF356LFX.bed
+    tad_file: ref/A549_raw-merged_TADs.txt
+    exclude_chr_list: ref/exclude_chr_list.txt
+    macs2_gsize: 3.05e9
+    gene_bed: ref/hg38.genes.bed
+    rose: annotation/hg38_refseq.ucsc
+    
 hg19:
     bwa_index: "/data/Clinomics/Ref/khanlab/Index/BWAIndex/hg19"
     black_list: ref/wgEncodeDacMapabilityConsensusExcludable.bed
@@ -36,6 +42,12 @@ hg19:
     exclude_chr_list: ref/exclude_chr_list.txt
     macs2_gsize: 2.7e9
     gene_bed: ref/hg19.genes.bed
+    rose: annotation/hg19_refseq.ucsc
+mm10:
+    bwa_index: /fdb/igenomes/Mus_musculus/UCSC/mm10/Sequence/BWAIndex/genome
+    black_list: ref/ENCFF547MET.bed
+    tad_file: ref/Myoblast.Doynova_2017-raw.domains
+    rose: annotation/mm10_refseq.ucsc
 default_lib_length: 148
 min_mapq: "30"
 bin_size: "25"

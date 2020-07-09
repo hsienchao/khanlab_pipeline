@@ -59,7 +59,14 @@ def main(args):
         df = df.reset_index(drop=True)
         if df['Amplified_Sample_Library_Name'].count() > 0:
             for column in df:
-                sample[column] = str(df[column][0])
+                str_data = str(df[column][0])
+                if column == "PairedRNA_SAMPLE_ID":
+                    str_data = str_data.replace("Sample_","")
+                if column == "PairedInput":
+                    str_data = str_data.replace("Sample_","")
+                sample[column] = str_data
+            if sample["SpikeIn"] == "yes" and not "SpikeInGenome" in sample:
+                sample["SpikeInGenome"] = "dm6"
             fo = open(out_file,"w")
             fo.write(yaml.dump({"samples":{sample_id : sample}}))
             fo.close()
@@ -83,8 +90,8 @@ def main(args):
        print("rnaseq")
     
 parser = argparse.ArgumentParser(description='Generate YAML sample sheet.')
-parser.add_argument("--sample", "-s", metavar="SAMPLE_ID", help="Sample ID (Library_id)_(FCID)")
-parser.add_argument("--out", "-o", metavar="OUTPUT", help="Output YAML file")
+parser.add_argument("--sample", "-s", metavar="SAMPLE_ID", required=True, help="Sample ID (Library_id)_(FCID)")
+parser.add_argument("--out", "-o", metavar="OUTPUT", required=True, help="Output YAML file")
 args = parser.parse_args()
 
 main(args)

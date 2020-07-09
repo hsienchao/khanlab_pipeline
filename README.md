@@ -1,4 +1,3 @@
-![Snakemake](https://img.shields.io/badge/snakemake- >=4.8.0-brightgreen.svg?style=flat-square)
 # khanlab_pipeline
 This is the implementation of [KhanLab](https://ccr.cancer.gov/Genetics-Branch/javed-khan) NGS Pipeline using Snakemake.
 
@@ -28,13 +27,29 @@ SLURM resource management
 - [JuiceBox] (https://github.com/aidenlab/Juicebox)
 - [Bowtie2] (https://github.com/BenLangmead/bowtie2)
 
+### ChIPseq:
+- BWA
+- macs
+- rose
+- homer
+- coltron
+- samtools
+- bedtools
+
+### RNAseq:
+- STAR
+- RSEM
+- samtools
+- xengsort
+- HLAminer
+- seq2HLA
 
 ## Conventions
 
 - Sample names cannot have "/" or "." in them
 - Fastq files end in ".fastq.gz"
 
-## Run pipeline
+## Running pipeline
 
 #### Input sample sheet
 
@@ -98,7 +113,11 @@ python scripts/sampleToYaml.py -s RH4_Ent6_H3K27ac_HiChIP_HH3JVBGX7 -o RH4_Ent6_
 ```
    scripts/automate.sh RH4_Ent6_H3K27ac_HiChIP_HH3JVBGX7
 ```
-  * Example 2: process RNAseq samples
+  * Example 2: process ChIPseq samples
+```
+   scripts/automate.sh RH4_D6_BRD4_024_C_HLFMLBGX3
+```
+  * Example 3: process RNAseq samples
 ```
    scripts/automate.sh NCI0215tumor_T_C2V4TACXX
 ```
@@ -141,7 +160,122 @@ samples:
 ![alt tag](dag.hic.svg)
 
 ## <a name="headChIPSeq"></a>ChIPseq
-Not implemented yet.
+#### ChIPseq sample_sheet
+
+##### Required columns
+
+1. Genome (hg19,hg38,mm10)
+2. SampleFiles
+3. SpikeIn (yes,no)
+4. SpikeInGenome         (optional)
+5. LibrarySize           (optional)
+6. EnhancePipe (yes, no)
+7. PeakCalling (narrow, broad)
+8. PairedRNA_SAMPLE_ID   (optional)
+
+## <a name="expChIPseq"></a>ChIPseq Example:
+
+### ChIPSeq with enhancer pipeline (e.g. H3K27ac)
+
+```
+samples:
+  RH4_D6_H3K27ac_018_C_HWC77BGXY:
+    PairedInput: RH4_Input_001_C_H5TLGBGXX
+    Genome: hg38
+    SampleFiles: Sample_RH4_D6_H3K27ac_018_C_HWC77BGXY
+    SpikeIn: 'yes'
+    SpikeInGenome: dm6
+    LibrarySize: 250
+    EnhancePipe: 'yes'
+    PeakCalling: narrow
+    PairedRNA_SAMPLE_ID: Rh4_dmso_6h_rz_T_H3YCHBGXX
+
+```
+
+### ChIPSeq without enhancer pipeline (e.g. H3K27ac)
+
+```
+samples:
+  RH4_D6_BRD4_024_C_HLFMLBGX3:
+    PairedInput: RH4_Input_001_C_H5TLGBGXX
+    Genome: hg38
+    SampleFiles: Sample_RH4_D6_BRD4_024_C_HLFMLBGX3
+    SpikeIn: 'yes'
+    SpikeInGenome: dm6
+    LibrarySize: 250
+    EnhancePipe: 'no'
+    PeakCalling: narrow
+    PairedRNA_SAMPLE_ID: RH4_D6_T_HVNVFBGX2
+```
+
+#### Output
+
+##### BWA Output
+
+1. <strong>BAM</strong>: [sample_id].bam
+2. <strong>No duplicate BAM</strong>: [sample_id].dd.bam
+3. <strong>Bigwig/TDF</strong>: [sample_id].25.RPM.bw/tdf
+4. <strong>SpikeIn normalized bigwig/TDF</strong>: [sample_id].25.scaled.bw/tdf
+
+##### MACS2 Output
+
+Folder name:
+
+<strong>MACS_OUT_q_[cutoff]</strong>: MACS_Out_q_0.01 or MACS_Out_q_0.05
+
+1. <strong>Peaks (no regions in blacklist)</strong>: [sample_id]_peaks.narrowPeak.nobl.bed
+2. <strong>Peak annotation</strong>: [sample_id]_peaks.narrowPeak.nobl.bed.annotation.txt
+3. <strong>Peak annotation summary</strong>: [sample_id]_peaks.narrowPeak.nobl.bed.annotation.summary
+4. <strong>Peak summit file (narrow peaks only)</strong>: [sample_id].narrow_summits.bed
+5. <strong>Peaks GREAT format</strong>: [sample_id]_peaks.narrowPeak.nobl.GREAT.bed
+
+##### ROSE Output
+
+Folder name:
+
+<strong>MACS_OUT_q_[cutoff]/ROSE_out_[stitch distance]</strong>: MACS_Out_q_[cutoff]/ROSE_out_12500
+ 
+1. <strong>All enhancers</strong>: [sample_id]_peaks_AllEnhancers.table.txt
+2. <strong>Super enhancer BED file</strong>: [sample_id]_peaks_AllEnhancers.table.super.bed
+3. <strong>Regular enhancer BED file</strong>: [sample_id]_peaks_AllEnhancers.table.regular.bed
+4. <strong>Super enhancer summit file</strong>: [sample_id].super_summits.bed
+5. <strong>Regular enhancer summit file</strong>: [sample_id].regular_summits.bed
+
+##### Motif Output
+
+We use homer to predict motifs for:
+
+1. Peaks summit file (folder: motif_narrow)
+2. Super enhancer summit file (folder: motif_super)
+3. Regular enhancer summit file (folder: motif_regular)
+
+##### EDEN output
+
+We use EDEN to look for regulated genes in the same TAD for:
+
+1. Peaks summit file (folder: motif_narrow)
+2. Super enhancer summit file (folder: motif_super)
+3. Regular enhancer summit file (folder: motif_regular)
+
+In the same folder, EDEN generates the following files:
+
+1. *_TPM[cutoff]_muti-genes.txt: Nearest genes for upstream, downstream and overlapped region of interest (TPM at least cutoff)
+2. *_TPM[cutoff]_max-genes.txt: Max expressed gene around region of interest (TPM at least cutoff)
+3. *_TPM[cutoff]_nearest-genes.txt: Max expressed gene around region of interest (TPM at least cuotff)
+4. *_TPM[cutoff]_300k.superloci.max.bed: Max expressed gene around stitched regions (TPM at least cutoff)
+5. *_TPM[cutoff]_300k.superloci.nearest.bed: Nearest gene around stitched regions (TPM at least cutoff)
+
+##### Coltron output
+
+Coltron output can be found in <strong>ROSE_out_12500/coltron</strong>
+
+#### Dependency graph
+
+##### DAG example with enhancer pipeline
+![alt tag](dag.chipseq.svg)
+
+##### DAG example without enhancer pipeline
+![alt tag](dag.chipseq.no_enhancer.svg)
 
 ## <a name="headRNAseq"></a>RNAseq
 
@@ -152,8 +286,8 @@ Not implemented yet.
 1. Genome (hg19,hg38,mm10)
 2. SampleFiles
 3. SampleCaptures (polya, polya_stranded, ribozero, access)
-3. Xenograft       (optional)
-4. XenograftGenome (optional)
+4. Xenograft       (optional)
+5. XenograftGenome (optional)
 
 ## <a name="expRNAseq"></a>RNAseq Example:
 

@@ -32,17 +32,17 @@ annotations:
     - gencode
     - ucsc
 hg38:
-    star_index_gencode: /fdb/STAR_indices/2.7.3a/GENCODE/Gencode_human/release_27/genes-100/
+    star_index_gencode: "/data/Clinomics/Ref/khanlab/Index/STAR_GencodeV32_2_7_3a/"
     star_index_ucsc: /fdb/STAR_indices/2.7.3a/UCSC/hg38/genes-100/
-    rsem_ref_gencode: /data/Clinomics/Ref/khanlab/Index/RSEM_Gencode_hg38/hg38
+    rsem_ref_gencode: /data/Clinomics/Ref/khanlab/Index/RSEM_GencodeV32/hg38
     rsem_ref_ucsc: "/data/Clinomics/Ref/khanlab/Index/RSEM_UCSC_hg38/hg38"
     hla_ref : "/data/Clinomics/Ref/khanlab/HLA/"
     xengsort_ref: "/data/Clinomics/Ref/xengsort/xengsort-index-k25.hg38.mm10.h5"
     
 hg19:
-    star_index_gencode: "/data/Clinomics/Ref/khanlab/Index/STAR_Gencode_hg19_2_7_3a/"
+    star_index_gencode: "/data/Clinomics/Ref/khanlab/Index/STAR_GencodeV19_2_7_3a/"
     star_index_ucsc: "/data/Clinomics/Ref/khanlab/Index/STAR_UCSC_hg19_2_7_3a/"
-    rsem_ref_gencode: "/data/Clinomics/Ref/khanlab/Index/RSEM_Gencode_hg19/hg19"
+    rsem_ref_gencode: "/data/Clinomics/Ref/khanlab/Index/RSEM_GencodeV19/hg19"
     rsem_ref_ucsc: "/data/Clinomics/Ref/khanlab/Index/RSEM_UCSC_hg19/hg19"
     xenome_ref: "/fdb/xenome/idx"
     hla_ref : "/data/Clinomics/Ref/khanlab/HLA/"
