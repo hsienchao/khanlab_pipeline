@@ -245,25 +245,25 @@ Folder name:
 
 We use homer to predict motifs for:
 
-1. Peaks summit file (folder: motif_narrow)
-2. Super enhancer summit file (folder: motif_super)
-3. Regular enhancer summit file (folder: motif_regular)
+1. <strong>Peaks summit file</strong> (folder: motif_narrow)
+2. <strong>Super enhancer summit file</strong> (folder: motif_super)
+3. <strong>Regular enhancer summit file</strong> (folder: motif_regular)
 
 ##### EDEN output
 
 We use EDEN to look for regulated genes in the same TAD for:
 
-1. Peaks summit file (folder: motif_narrow)
-2. Super enhancer summit file (folder: motif_super)
-3. Regular enhancer summit file (folder: motif_regular)
+1. <strong>Peaks summit file</strong> (folder: motif_narrow)
+2. <strong>Super enhancer summit file</strong> (folder: motif_super)
+3. <strong>Regular enhancer summit file</strong> (folder: motif_regular)
 
 In the same folder, EDEN generates the following files:
 
-1. *_TPM[cutoff]_muti-genes.txt: Nearest genes for upstream, downstream and overlapped region of interest (TPM at least cutoff)
-2. *_TPM[cutoff]_max-genes.txt: Max expressed gene around region of interest (TPM at least cutoff)
-3. *_TPM[cutoff]_nearest-genes.txt: Max expressed gene around region of interest (TPM at least cuotff)
-4. *_TPM[cutoff]_300k.superloci.max.bed: Max expressed gene around stitched regions (TPM at least cutoff)
-5. *_TPM[cutoff]_300k.superloci.nearest.bed: Nearest gene around stitched regions (TPM at least cutoff)
+1. <strong>*_TPM[cutoff]_muti-genes.txt</strong>: Nearest genes for upstream, downstream and overlapped region of interest (TPM at least cutoff)
+2. <strong>*_TPM[cutoff]_max-genes.txt</strong>: Max expressed gene around region of interest (TPM at least cutoff)
+3. <strong>*_TPM[cutoff]_nearest-genes.txt</strong>: Max expressed gene around region of interest (TPM at least cuotff)
+4. <strong>*_TPM[cutoff]_300k.superloci.max.bed</strong>: Max expressed gene around stitched regions (TPM at least cutoff)
+5. <strong>*_TPM[cutoff]_300k.superloci.nearest.bed</strong>: Nearest gene around stitched regions (TPM at least cutoff)
 
 ##### Coltron output
 
@@ -272,10 +272,10 @@ Coltron output can be found in <strong>ROSE_out_12500/coltron</strong>
 #### Dependency graph
 
 ##### DAG example with enhancer pipeline
-![alt tag](dag.chipseq.svg)
+![alt tag](dag.chipseq.svg|width=1500)
 
 ##### DAG example without enhancer pipeline
-![alt tag](dag.chipseq.no_enhancer.svg)
+![alt tag](dag.chipseq.no_enhancer.svg|width=1200)
 
 ## <a name="headRNAseq"></a>RNAseq
 
@@ -317,27 +317,27 @@ samples:
 
 ##### STAR Output
 
-1. Gencode STAR BAM: STAR_hg19_gencode/[sample_id].star.genome.bam
-2. Gencode STAR BAM bigwig: STAR_hg19_gencode/[sample_id].star.genome.bw
-3. UCSC STAR BAM: STAR_hg19_gencode/[sample_id].star.genome.bam
-4. UCSC STAR BAM: STAR_hg19_gencode/[sample_id].star.genome.bw
+1. <strong>Gencode STAR BAM</strong>: STAR_hg19_gencode/[sample_id].star.genome.bam
+2. <strong>Gencode STAR BAM bigwig</strong>: STAR_hg19_gencode/[sample_id].star.genome.bw
+3. <strong>UCSC STAR BAM</strong>: STAR_hg19_gencode/[sample_id].star.genome.bam
+4. <strong>UCSC STAR BAM</strong>: STAR_hg19_gencode/[sample_id].star.genome.bw
 
 ##### RSEM Output
 
-1. Gencode RSME genes: RSEM_hg19_gencode/[sample_id].hg19.genocde.genes.results
-2. Gencode RSME isoforms: RSEM_hg19_gencode/[sample_id].hg19.genocde.isoforms.results
-3. Gencode RSME genes: RSEM_hg19_ucsc/[sample_id].hg19.ucsc.genes.results
-4. Gencode RSME isoforms: RSEM_hg19_ucsc/[sample_id].hg19.ucsc.genes.results
+1. <strong>Gencode RSME genes</strong>: RSEM_hg19_gencode/[sample_id].hg19.genocde.genes.results
+2. <strong>Gencode RSME isoforms</strong>: RSEM_hg19_gencode/[sample_id].hg19.genocde.isoforms.results
+3. <strong>Gencode RSME genes</strong>: RSEM_hg19_ucsc/[sample_id].hg19.ucsc.genes.results
+4. <strong>Gencode RSME isoforms</strong>: RSEM_hg19_ucsc/[sample_id].hg19.ucsc.genes.results
 
 ##### HLA Output
 
-1. Seq2HLA and HLAminer combined file: HLA/[sample_id].Calls.txt
+1. <strong>Seq2HLA and HLAminer combined file</strong>: HLA/[sample_id].Calls.txt
 
 ##### Xenograft filtered FASTQ (for Xenograft samples)
 
-1. DATA/classification.tsv: Filtering summary
-2. DATA/[sample_id].filtered_R1.fastq.gz
-3. DATA/[sample_id].filtered_R2.fastq.gz
+1. <strong>DATA/classification.tsv: Filtering summary</strong>
+2. <strong>DATA/[sample_id].filtered_R1.fastq.gz</strong>
+3. <strong>DATA/[sample_id].filtered_R2.fastq.gz</strong>
 
 #### Dependency graph
 
