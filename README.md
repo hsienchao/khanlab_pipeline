@@ -272,11 +272,10 @@ Coltron output can be found in <strong>ROSE_out_12500/coltron</strong>
 #### Dependency graph
 
 ##### DAG example with enhancer pipeline
-<img src="dag.chipseq.svg" width="1800">
-![alt tag](dag.chipseq.svg =2000x400)
+![alt tag](dag.chipseq.svg)
 
 ##### DAG example without enhancer pipeline
-![alt tag](dag.chipseq.no_enhancer.svg | =1500x350)
+![alt tag](dag.chipseq.no_enhancer.svg)
 
 ## <a name="headRNAseq"></a>RNAseq
 
