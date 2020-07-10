@@ -108,6 +108,8 @@ python scripts/sampleToYaml.py -s RH4_Ent6_H3K27ac_HiChIP_HH3JVBGX7 -o RH4_Ent6_
     -- Processed data: /data/khanlab/projects/pipeline_production/processed_DATA
     -- Processed data: /data/khanlab/projects/pipeline_production/sample_sheets
 
+  * Automation workflow
+  ![alt tag](automation.png)
 
   * Example 1: process HiC sample
 ```
