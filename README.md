@@ -86,27 +86,37 @@ python scripts/sampleToYaml.py -s RH4_Ent6_H3K27ac_HiChIP_HH3JVBGX7 -o RH4_Ent6_
             -type|t         <string>        Pipeline type (available options: hic,chipseq,ranseq,dnaseq)
             -workdir|w      <string>        Working directory where all the results will be stored.
             -sheet|s        <string>        Sample sheet in YAML format
+            -genome|g       <string>        Genome version (default: hg38)
 
     optional options: 
             -datadir|d <string> FASTQ file location (default: /data/khanlab/projects/DATA) 
             -dryrun Dryrun only 
             -dag Generate DAG SVG
 
-  * Example
+  * Example (hg38)
 ```
       launch -type hic -w /data/khanlab/projects/HiC/processed_DATA -s /data/khanlab/projects/HiC/processed_DATA/sample_sheets/RH4_D6_H3K27ac_HiChIP_HKJ22BGX7.hic.yaml
 ```
+  * Example (hg19)
+```
+      launch -type hic -w /data/khanlab/projects/HiC/processed_DATA -s /data/khanlab/projects/HiC/processed_DATA/sample_sheets/RH4_D6_H3K27ac_HiChIP_HKJ22BGX7.hic.yaml -g hg19
+```
+
 #####  2. Launch by sample ID (Khanlab automation and regular Khanlab users):
 ```
     scripts/automate.sh [sampleID]
 ```    
     This script will parse the Khanlab master files to determine the sequencing type automatically. Then it will retrieve required columns from HiC/ChIPseq sample sheets and check if FASTQ files are ready. Then it will lauch the pipeline automatically.
+
+    For RNAseq samples, the genome is defined in "SampleRef" column in master file. For ChIPSeq/HiC samples, genome version is defined in "Genome" column. The values can be multiple seperated by comma (e.g. hg19,hg38)
     
     The Khanlab data location:
     
     -- FASTQ files: /data/khanlab/projects/DATA
     -- Processed data: /data/khanlab/projects/pipeline_production/processed_DATA
     -- Processed data: /data/khanlab/projects/pipeline_production/sample_sheets
+    -- ChIPSeq sample sheet: /data/khanlab/projects/ChIP_seq/manage_samples/ChIP_seq_samples.xlsx
+    -- HiC sample sheet: /data/khanlab/projects/HiC/manage_samples/HiC_sample_sheet.xlsx
 
   * Automation workflow
   ![alt tag](automation.png)
@@ -123,6 +133,7 @@ python scripts/sampleToYaml.py -s RH4_Ent6_H3K27ac_HiChIP_HH3JVBGX7 -o RH4_Ent6_
 ```
    scripts/automate.sh NCI0215tumor_T_C2V4TACXX
 ```
+
 
 ## <a name="headHiC"></a>HiC
 
