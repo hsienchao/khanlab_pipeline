@@ -47,6 +47,7 @@ try:
     COLTRONS = []
     MACS_BAMS = {}
     for sample_id, sample in samples.items():
+        sample["Genome"] = config["genome"]
         SAMPLES.append(sample_id)
         FASTQS[sample_id] = []
         MACS_BAMS[sample_id] = []
@@ -208,6 +209,9 @@ rule coltron:
             log_dir = lambda wildcards: wildcards.sample + '/log',
     shell:
             """
+            module load meme
+            module load bamliquidator
+            module load R
             {params.coltron_bin} -e {input.rose_out} -b {input.bam} -g {params.genome} -o {wildcards.sample}/{wildcards.macs_dir}/{wildcards.rose_dir}/coltron/ \
                 -n {wildcards.sample} -d {params.nearest_tf_distance_cutoff} -a {input.exp_file} -x {params.exp_cutoff}
             
@@ -289,13 +293,16 @@ rule prepareRoseSummit:
 rule rose:
     input:
             bed=lambda wildcards: wildcards.sample + "/MACS_Out_q_" + wildcards.cutoff + "/" + wildcards.sample + "_peaks." + samples[wildcards.sample]["PeakCalling"] + "Peak.nobl.bed",
+            #bed="{sample}/MACS_Out_q_{cutoff}/{sample}_peaks.{peak_type}Peak.nobl.no_TSS.bed",
             bam="{sample}/{sample}.dd.bam"
     output:
             rose_out="{sample}/MACS_Out_q_{cutoff}/ROSE_out_{stitch_distance}/{sample}_peaks_AllEnhancers.table.txt",
             se_table="{sample}/MACS_Out_q_{cutoff}/ROSE_out_{stitch_distance}/{sample}_peaks_AllEnhancers.table.super.bed",
             re_table="{sample}/MACS_Out_q_{cutoff}/ROSE_out_{stitch_distance}/{sample}_peaks_AllEnhancers.table.regular.bed",
             se_great="{sample}/MACS_Out_q_{cutoff}/ROSE_out_{stitch_distance}/{sample}_peaks_AllEnhancers.table.super.GREAT.bed",
-            re_great="{sample}/MACS_Out_q_{cutoff}/ROSE_out_{stitch_distance}/{sample}_peaks_AllEnhancers.table.regular.GREAT.bed"
+            re_great="{sample}/MACS_Out_q_{cutoff}/ROSE_out_{stitch_distance}/{sample}_peaks_AllEnhancers.table.regular.GREAT.bed",
+            #no_tss="{sample}/MACS_Out_q_{cutoff}/{sample}_peaks.{peak_type}Peak.nobl.no_TSS.bed",
+            #no_tss_stitched="{sample}/MACS_Out_q_{cutoff}/{sample}_peaks.{peak_type}Peak.nobl.no_TSS_{stitch_distance}.bed",
     version:
             config["version"]["rose"]
     benchmark:
@@ -304,25 +311,32 @@ rule rose:
             work_dir = config["work_dir"],
             batch    = config["cluster"]["job_rose"],
             pipeline_home=config["pipeline_home"],
+            peak_type = lambda wildcards: samples[wildcards.sample]["PeakCalling"],
             tss_distance=config["rose"]["tss_distance"],
+            tss_bed=lambda wildcards: config["pipeline_home"] + "/" + config[samples[wildcards.sample]["Genome"]]["tss_bed"],
             genome = lambda wildcards: samples[wildcards.sample]["Genome"].upper(),
             annotation = lambda wildcards: config[samples[wildcards.sample]["Genome"]]["rose"],
             input_control = lambda wildcards: " -c " + config["work_dir"] + "/" + samples[wildcards.sample]["PairedInput"] + "/" + samples[wildcards.sample]["PairedInput"] + ".dd.bam" if samples[wildcards.sample]["PairedInput"] != "." else "",
             rulename = "rose",
             log_dir = lambda wildcards: wildcards.sample + '/log',
     shell:
-            """  
-            #module load rose/{version}
+            """
+            module load bedtools
+            bedtools intersect -a {input.bed} -b {params.tss_bed} -v > {wildcards.sample}/MACS_Out_q_{wildcards.cutoff}/{wildcards.sample}_peaks.{params.peak_type}Peak.nobl.no_TSS.bed
+            bedtools merge -i {wildcards.sample}/MACS_Out_q_{wildcards.cutoff}/{wildcards.sample}_peaks.{params.peak_type}Peak.nobl.no_TSS.bed -d {wildcards.stitch_distance} -c 4,5,6 -o distinct,sum,distinct > {wildcards.sample}/MACS_Out_q_{wildcards.cutoff}/{wildcards.sample}_peaks.{params.peak_type}Peak.nobl.no_TSS_{wildcards.stitch_distance}.bed
+            module load rose/{version}
+            #module load bamliquidator
             module load python/2.7
-            module load R/3.5
-            #cd $(dirname `which ROSE_main.py`)
-            cd {params.pipeline_home}/apps/rose
-            export PATH=$PATH:{params.pipeline_home}/apps/rose
-            python ROSE_main.py -i {params.work_dir}/{input.bed} -g {params.annotation} -r {params.work_dir}/{input.bam} {params.input_control} -t {params.tss_distance} -s {wildcards.stitch_distance} -o {params.work_dir}/{wildcards.sample}/MACS_Out_q_{wildcards.cutoff}/ROSE_out_{wildcards.stitch_distance}
+            module load R/3.4
+            #cd /usr/local/apps/bamliquidator/pipeline
+            cd $(dirname `which ROSE_main.py`)
+            #cd {params.pipeline_home}/apps/rose
+            #export PATH=$PATH:{params.pipeline_home}/apps/rose
+            ./ROSE_main.py -i {params.work_dir}/{wildcards.sample}/MACS_Out_q_{wildcards.cutoff}/{wildcards.sample}_peaks.{params.peak_type}Peak.nobl.no_TSS_{wildcards.stitch_distance}.bed -g {params.genome} -r {params.work_dir}/{input.bam} {params.input_control} -t {params.tss_distance} -s {wildcards.stitch_distance} -o {params.work_dir}/{wildcards.sample}/MACS_Out_q_{wildcards.cutoff}/ROSE_out_{wildcards.stitch_distance}
             {params.pipeline_home}/scripts/roseTable2Bed.sh {params.work_dir}/{output.rose_out} {params.work_dir}/{output.re_table} {params.work_dir}/{output.se_table}
             cd {params.work_dir}
             cut -f1-3 {output.se_table} > {output.se_great}
-            cut -f1-3 {output.re_table} > {output.re_great}            
+            cut -f1-3 {output.re_table} > {output.re_great}
             """
 
 rule peakAnnotation:
@@ -397,7 +411,7 @@ rule macs2:
             cutoff_option = lambda wildcards: "--broad-cutoff " + wildcards.cutoff if wildcards.peak_type=="broad" else " -q " + wildcards.cutoff,
             input_control = lambda wildcards: " -c " + samples[wildcards.sample]["PairedInput"] + "/" + samples[wildcards.sample]["PairedInput"] + ".dd.bam" if samples[wildcards.sample]["PairedInput"] != "." else "",
             black_list= lambda wildcards: config["pipeline_home"] + "/" + config[samples[wildcards.sample]["Genome"]]["black_list"],
-            exclude_chr_list = lambda wildcards: config["pipeline_home"] + "/" + config[samples[wildcards.sample]["Genome"]]["exclude_chr_list"],
+            exclude_chr_list = lambda wildcards: config["pipeline_home"] + "/" + config[samples[wildcards.sample]["Genome"]]["exclude_chr_list"],            
             log_dir = lambda wildcards: wildcards.sample + '/log',
     shell:
             """  

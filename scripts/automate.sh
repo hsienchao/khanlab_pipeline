@@ -23,13 +23,24 @@ fi
 
 module load python/3.6
 
-type=`python $pipeline_home/scripts/sampleToYaml.py -s $sample_id -o ${sample_id}.yaml`
-#echo $type
+#type=`python $pipeline_home/scripts/sampleToYaml.py -s $sample_id -o ${sample_id}.yaml -c /data/khanlab/projects/ChIP_seq/manage_samples/ChIP_seq_samples_hc.xlsx`
+#res_str=`python $pipeline_home/scripts/sampleToYaml.py -s $sample_id -o ${sample_id}.yaml -c /data/khanlab/projects/ChIP_seq/manage_samples/ChIP_seq_samples_hc.xlsx`
+res_str=`python $pipeline_home/scripts/sampleToYaml.py -s $sample_id -o ${sample_id}.yaml`
+IFS=$'\n' read -rd '' -a res <<< "$res_str"
+type=${res[0]}
+genome_str=${res[1]}
+IFS=',' read -rd '' -a genomes <<< "$genome_str"
+echo $type
+echo $genome_str
 yaml_file=$sample_sheet_home/$type/${sample_id}.yaml
 if [[ "$type" == "hic" || "$type" == "chipseq" || "$type" == "rnaseq" ]];then
 	echo "mv ${sample_id}.yaml $yaml_file"
 	mv ${sample_id}.yaml $yaml_file
-	perl $pipeline_home/launch -t $type -w $processed_data_home/$type -s $yaml_file
+	for genome in "${genomes[@]}";do
+		g_nos=`echo $genome | sed 's/ //g'`
+		echo perl $pipeline_home/launch -t $type -w $processed_data_home/$g_nos/$type -s $yaml_file -g $g_nos
+		perl $pipeline_home/launch -t $type -w $processed_data_home/$g_nos/$type -s $yaml_file -g $g_nos
+	done
 else
 	echo "Error: Sample sheet generation failed: $sample_id. Reason: $type" |mutt -s 'Khanlab Pipeline Status' `whoami`@mail.nih.gov
 fi

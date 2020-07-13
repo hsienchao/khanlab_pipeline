@@ -9,6 +9,7 @@ use File::Basename;
 my $type;
 my $data_dir="/data/khanlab/projects/DATA";
 my $sheet;
+my $genome="hg38";
 
 my $pipeline_home = readpipe("cd `dirname $0`;pwd");
 chomp $pipeline_home;
@@ -36,6 +37,7 @@ required options:
   -type|t     <string>  Pipeline type (available options: hic,chipseq,ranseq,dnaseq)
   -workdir|w  <string>  Working directory where all the results will be stored.
   -sheet|s    <string>  Sample sheet in YAML format
+  -genome|g   <string>  Genome version (default: $genome)
 
 optional options:  
   -datadir|d  <string>  FASTQ file location (default: $data_dir)
@@ -58,6 +60,7 @@ GetOptions(
 		'type|t=s'      =>\$type,
 		'datadir|d=s'   =>\$data_dir,
 		'workdir|w=s'   =>\$work_dir,
+		'genome|g=s'    =>\$genome,
 		'sheet|s=s'     =>\$sheet,
 		'help|h'        =>\$help,
 	  );
@@ -95,7 +98,7 @@ chomp $now;
 my $jobid;
 my $sheet_name = basename($sheet, ".yaml");
 my $snakefile="$pipeline_home/pipeline.$type.rules";
-my $snake_command = "snakemake --directory $work_dir --snakefile $snakefile --configfile $sheet --config pipeline_home=$pipeline_home work_dir=$work_dir data_dir=$data_dir now=$now";
+my $snake_command = "snakemake --directory $work_dir --snakefile $snakefile --configfile $sheet --config pipeline_home=$pipeline_home work_dir=$work_dir data_dir=$data_dir genome=$genome now=$now";
 if ($dryrun){
 	$snake_command = $snake_command." -p -r --ri --dryrun";
 	if ($dag) {

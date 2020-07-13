@@ -11,6 +11,7 @@ try:
     data_dir = config['data_dir']
     work_dir = config['work_dir']
     pipeline_home = config['pipeline_home']
+    genome = config['genome']
     shell.prefix("""
     set -e -o pipefail
     module purge
@@ -38,7 +39,8 @@ try:
     RSEM= []
     HLA= []
 
-    for sample_id, sample in samples.items():        
+    for sample_id, sample in samples.items():
+        sample["Genome"] = config["genome"]
         SAMPLES.append(sample_id)
         FASTQS[sample_id] = []
         #add FASTQ targets

@@ -16,8 +16,8 @@ def main(args):
     out_file = args.out.strip()
     masterfile_dir="/data/Clinomics/MasterFiles"
     master_files = ["Sequencing_Tracking_Master_db.txt","ClinOmics_Sequencing_Master_File_db.txt","SequencingMasterFile_OutsidePatients_db.txt"]
-    hic_master_file="/data/khanlab/projects/HiC/manage_samples/HiC_sample_sheet.xlsx"
-    chipseq_master_file="/data/khanlab/projects/ChIP_seq/manage_samples/ChIP_seq_samples.xlsx"
+    hic_master_file=args.hic.strip()
+    chipseq_master_file=args.chip.strip()
     #sample information from Young's master file
     sample_file = "Sample_" + sample_id
     master_sample = {"SampleFiles":sample_file}
@@ -39,7 +39,7 @@ def main(args):
         print(sample_id + " not found in Khanlab master files\n")
         sys.exit(1)
     #HiC sample
-    if master_sample["Type of sequencing"] == "C-il":
+    if master_sample["Type of sequencing"] == "H-il":
         df = pd.read_excel(hic_master_file)
         df = df.loc[df['Amplified_Sample_Library_Name'] == master_sample['Library ID']]
         df = df.reset_index(drop=True)
@@ -50,6 +50,7 @@ def main(args):
             fo.write(yaml.dump({"samples":{sample_id : sample}}))
             fo.close()
             print("hic")
+            print(sample["Genome"])
         #else:
         #    sys.stderr.write(sample_id + " not found in Khanlab master files\n")
     #ChIPseq sample
@@ -71,6 +72,7 @@ def main(args):
             fo.write(yaml.dump({"samples":{sample_id : sample}}))
             fo.close()
             print("chipseq")
+            print(sample["Genome"])
         else:
             sys.stderr.write(sample_id + " not found in HiC/Chipseq master files\n")
     if 'Amplified_Sample_Library_Name' not in sample:
@@ -88,10 +90,13 @@ def main(args):
        fo.write(yaml.dump({"samples":{sample_id : master_sample}}))
        fo.close()
        print("rnaseq")
+       print(master_sample["Genome"])
     
 parser = argparse.ArgumentParser(description='Generate YAML sample sheet.')
 parser.add_argument("--sample", "-s", metavar="SAMPLE_ID", required=True, help="Sample ID (Library_id)_(FCID)")
-parser.add_argument("--out", "-o", metavar="OUTPUT", required=True, help="Output YAML file")
+parser.add_argument("--out", "-o", metavar="OUTPUT", help="Output YAML file")
+parser.add_argument("--chip", "-c", metavar="ChIPseq MASTER", help="Chipseq Master file", default="/data/khanlab/projects/ChIP_seq/manage_samples/ChIP_seq_samples.xlsx")
+parser.add_argument("--hic", "-i", metavar="ChIPseq MASTER", help="HiC Master file", default="/data/khanlab/projects/HiC/manage_samples/HiC_sample_sheet.xlsx")
 args = parser.parse_args()
 
 main(args)

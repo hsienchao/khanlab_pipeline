@@ -13,7 +13,7 @@ cluster:
     large: "--partition=ccr,norm    --time=24:00:00 --mem=120G  --cpus-per-task=24  --gres=lscratch:05"
     job_bwa: "--partition=ccr,norm --time=10:00:00 --mem=80G  --cpus-per-task=40  --gres=lscratch:200"
     job_macs2: "--partition=ccr,norm --time=10:00:00 --mem=32G  --cpus-per-task=1  --gres=lscratch:100"
-    job_rose: "--partition=ccr,norm --time=10:00:00 --mem=16G  --cpus-per-task=1  --gres=lscratch:100"
+    job_rose: "--partition=ccr,norm --time=20:00:00 --mem=32G  --cpus-per-task=1  --gres=lscratch:100"
     job_motif: "--partition=ccr,norm --time=10:00:00 --mem=48G  --cpus-per-task=24  --gres=lscratch:100"
 version:
     bwa: "0.7.17"
@@ -33,6 +33,7 @@ hg38:
     exclude_chr_list: ref/exclude_chr_list.txt
     macs2_gsize: 3.05e9
     gene_bed: ref/hg38.genes.bed
+    tss_bed: ref/hg38.tss.bed
     rose: annotation/hg38_refseq.ucsc
     
 hg19:
@@ -42,6 +43,7 @@ hg19:
     exclude_chr_list: ref/exclude_chr_list.txt
     macs2_gsize: 2.7e9
     gene_bed: ref/hg19.genes.bed
+    tss_bed: ref/hg19.tss.bed
     rose: annotation/hg19_refseq.ucsc
 mm10:
     bwa_index: /fdb/igenomes/Mus_musculus/UCSC/mm10/Sequence/BWAIndex/genome

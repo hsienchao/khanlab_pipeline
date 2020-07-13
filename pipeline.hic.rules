@@ -36,6 +36,7 @@ try:
     FASTQS = {}
 
     for sample_id, sample in samples.items():
+        sample["Genome"] = config["genome"]
         FASTQS[sample_id] = []
         MERGE_STATS[sample_id] = []
         PAIRS[sample_id] = []
