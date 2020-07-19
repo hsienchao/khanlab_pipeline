@@ -182,7 +182,7 @@ rule HiCProStep1:
     output: 
             "{sample}/HiCproOUTPUT.{genome}/hic_results/data/{sample}/{sample}_{bowtie_idx}.bwt2pairs.validPairs"
     version:
-            config["version"]["hicpro"]    
+            config["version"]["hicpro"]
     params:
             work_dir = config["work_dir"],
             rulename = "HiCProStep1",
@@ -208,7 +208,7 @@ rule HiCPro:
             config["version"]["hicpro"]
     params:
             out_dir = lambda wildcards: wildcards.sample + '/HiCproOUTPUT.' + wildcards.genome,
-            config_file = lambda wildcards: config["pipeline_home"] + '/' + config[wildcards.genome]["hicpro_config"]
+            config_file = lambda wildcards: config["pipeline_home"] + '/' + config[wildcards.genome]["hicpro_dpnii_config"] if samples[wildcards.sample]["Digest"] == "dpnii" else config["pipeline_home"] + '/' + config[wildcards.genome]["hicpro_config"]
     shell:
             """
             module load hicpro/{version}

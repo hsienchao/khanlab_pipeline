@@ -46,8 +46,9 @@ def main(args):
         if df['Amplified_Sample_Library_Name'].count() > 0:
             for column in df:
                 sample[column] = str(df[column][0])
+            sample["SampleFiles"] = sample_file
             fo = open(out_file,"w")
-            fo.write(yaml.dump({"samples":{sample_id : sample}}))
+            fo.write(yaml.dump({"samples":{sample_id : sample}}))            
             fo.close()
             print("hic")
             print(sample["Genome"])
@@ -68,6 +69,7 @@ def main(args):
                 sample[column] = str_data
             if sample["SpikeIn"] == "yes" and not "SpikeInGenome" in sample:
                 sample["SpikeInGenome"] = "dm6"
+            sample["SampleFiles"] = sample_file
             fo = open(out_file,"w")
             fo.write(yaml.dump({"samples":{sample_id : sample}}))
             fo.close()

@@ -16,7 +16,7 @@ RAW_DIR = rawdata
 N_CPU = 4
 LOGFILE = hicpro.log
 
-JOB_NAME = hg38_HiCpro
+JOB_NAME = hg19_HiCpro
 JOB_MEM = 10gb
 JOB_WALLTIME = 24:00:00
 JOB_QUEUE = ccr
@@ -44,8 +44,8 @@ BOWTIE2_LOCAL_OPTIONS =  --very-sensitive -L 20 --score-min L,-0.6,-0.2 --end-to
 ## Annotation files
 #######################################################################
 
-REFERENCE_GENOME = ucsc.hg38
-GENOME_SIZE = /data/khanlab/projects/HiC/reference_files/chrom_hg38.sizes
+REFERENCE_GENOME = ucsc.hg19
+GENOME_SIZE = /data/khanlab/projects/HiC/reference_files/chrom_hg19.sizes
 
 #######################################################################
 ## Allele specific
@@ -57,8 +57,8 @@ ALLELE_SPECIFIC_SNP =
 ## Digestion Hi-C
 #######################################################################
 
-GENOME_FRAGMENT = 
-LIGATION_SITE = 
+GENOME_FRAGMENT = /data/khanlab/projects/HiC/reference_files/dpnii.ucsc.hg19.bed
+LIGATION_SITE = GATCGATC
 MIN_FRAG_SIZE = 100
 MAX_FRAG_SIZE = 100000
 MIN_INSERT_SIZE = 100

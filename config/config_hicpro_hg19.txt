@@ -57,8 +57,8 @@ ALLELE_SPECIFIC_SNP =
 ## Digestion Hi-C
 #######################################################################
 
-GENOME_FRAGMENT = /data/khanlab/projects/HiC/reference_files/dpnii.ucsc.hg19.bed
-LIGATION_SITE = GATCGATC
+GENOME_FRAGMENT =
+LIGATION_SITE =
 MIN_FRAG_SIZE = 100
 MAX_FRAG_SIZE = 100000
 MIN_INSERT_SIZE = 100
