@@ -13,11 +13,11 @@ RAW_DIR = rawdata
 #######################################################################
 ## SYSTEM - PBS - Start Editing Here !!
 #######################################################################
-N_CPU = 4
+N_CPU = 24
 LOGFILE = hicpro.log
 
 JOB_NAME = hg19_HiCpro
-JOB_MEM = 10gb
+JOB_MEM = 120gb
 JOB_WALLTIME = 24:00:00
 JOB_QUEUE = ccr
 JOB_MAIL = chouh@nih.gov
