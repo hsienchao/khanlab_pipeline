@@ -12,7 +12,15 @@ try:
     data_dir = config['data_dir']
     work_dir = config['work_dir']
     pipeline_home = config['pipeline_home']
-
+    shell.prefix("""
+    set -e -o pipefail
+    module purge
+    sleep 20s
+    MEM=`echo "${{SLURM_MEM_PER_NODE}} / 1024 "|bc`
+    LOCAL="/lscratch/${{SLURM_JOBID}}/"
+    THREADS=${{SLURM_CPUS_ON_NODE}}
+    """)
+    
     configfile: pipeline_home +"/config/config.hic.yaml"
 
     pipeline_version = config["common"]["pipeline_version"]
@@ -150,6 +158,7 @@ rule mergeStats:
     shell:
             """
             bash {params.pipeline_home}/scripts/mergeStats.sh {wildcards.sample} {params.ref_genome} {params.spike_in_genome}
+            rm -rf {wildcards.sample}/HiCproOUTPUT.{params.spike_in_genome}
             """
             
 rule HiCProStep2:
@@ -208,12 +217,20 @@ rule HiCPro:
             config["version"]["hicpro"]
     params:
             out_dir = lambda wildcards: wildcards.sample + '/HiCproOUTPUT.' + wildcards.genome,
-            config_file = lambda wildcards: config["pipeline_home"] + '/' + config[wildcards.genome]["hicpro_dpnii_config"] if samples[wildcards.sample]["Digest"] == "dpnii" else config["pipeline_home"] + '/' + config[wildcards.genome]["hicpro_config"]
+            config_file = lambda wildcards: config["pipeline_home"] + '/' + config[wildcards.genome]["hicpro_dpnii_config"] if samples[wildcards.sample]["Digest"] == "dpnii" else config["pipeline_home"] + '/' + config[wildcards.genome]["hicpro_config"],
+            now = str(config["now"])
     shell:
             """
             module load hicpro/{version}
+            uid=`whoami`
+            rm -rf /scratch/${{uid}}/{wildcards.sample}.{wildcards.genome}.{params.now}
+            mkdir -p /scratch/${{uid}}/{wildcards.sample}.{wildcards.genome}.{params.now}
             rm -rf {params.out_dir}
-            HiC-Pro -i {wildcards.sample}/DATA/ -o {params.out_dir}/ -c {params.config_file} -p
+            cp {params.config_file} {wildcards.sample}/
+            config_file=$(basename {params.config_file})
+            sed -i "s/TMP_DIR = tmp/TMP_DIR = \/scratch\/${{uid}}\/{wildcards.sample}.{wildcards.genome}.{params.now}\/tmp/" {wildcards.sample}/${{config_file}}
+            sed -i "s/BOWTIE2_OUTPUT_DIR = bowtie_results/BOWTIE2_OUTPUT_DIR = \/scratch\/${{uid}}\/{wildcards.sample}.{wildcards.genome}.{params.now}\/bowtie_results/" {wildcards.sample}/${{config_file}}
+            HiC-Pro -i {wildcards.sample}/DATA/ -o {params.out_dir}/ -c {wildcards.sample}/${{config_file}} -p
             """
 
 rule prepareFASTQ:
