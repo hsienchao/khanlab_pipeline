@@ -1,23 +1,4 @@
-import os
-import io
-import sys
-import traceback
-import json
-
-
 try:
-    configfile: pipeline_home +"/config/config.rnaseq.yaml"
-    pipeline_version = config["common"]["pipeline_version"]
-    emails = config["common"]["emails"]
-
-    config["pipeline_home"] = pipeline_home
-    config["work_dir"] = work_dir
-        
-    suffix_R1 = config["common"]["FASTQ_suffix_R1"]
-    suffix_R2 = config["common"]["FASTQ_suffix_R2"]
-    suffix_SE = config["common"]["FASTQ_suffix_SE"]
-
-    SAMPLES = []
     #prepare targets
     FASTQS = {}
     BAMS = []
@@ -81,19 +62,9 @@ except Exception as err:
     shell("echo 'RNAseq pipeline has exception: reason " + contents + ". Working Dir:  {work_dir}' |mutt -e 'my_hdr From:chouh@nih.gov' -s 'Khanlab RNAseq Pipeline Status' `whoami`@mail.nih.gov {emails} ")
     sys.exit()
     
-onerror:
-    shell("echo 'RNAseq pipeline version {pipeline_version} failed on Biowulf. Samples: {SAMPLES}. Working Dir:  {work_dir}' |mutt -e 'my_hdr From:chouh@nih.gov' -s 'Khanlab RNAseq Pipeline Status' `whoami`@mail.nih.gov {emails} ")
-onstart:
-    shell("echo 'RNAseq pipeline version {pipeline_version} started on Biowulf. Samples: {SAMPLES}. Working Dir:  {work_dir}' |mutt -e 'my_hdr From:chouh@nih.gov' -s 'Khanlab RNAseq Pipeline Status' `whoami`@mail.nih.gov {emails} ")
-onsuccess:
-    shell("echo 'RNAseq pipeline version {pipeline_version} finished on Biowulf. Samples: {SAMPLES}. Working Dir:  {work_dir}' |mutt -e 'my_hdr From:chouh@nih.gov' -s 'Khanlab RNAseq Pipeline Status' `whoami`@mail.nih.gov {emails} ")
-    shell("for s in {SAMPLES};do touch {work_dir}/${{s}}/successful.txt;chgrp -R khanlab {work_dir}/${{s}};done")
-    print("Workflow finished, no error")
-    
-localrules: prepareFASTQ, RNAseq_pipeline, MergeHLA
+TARGETS = BAMS + HLA + RSEM
 
-rule RNAseq_pipeline:
-    input: BAMS,HLA,RSEM
+localrules: prepareFASTQ, RNAseq_pipeline, MergeHLA
 
 rule RSEM:
     input:
@@ -159,7 +130,7 @@ rule seq2HLA:
     params:
             rulename= "seq2HLA",
             log_dir = lambda wildcards: wildcards.sample + '/log',
-            app_home = config["common"]["app_home"],
+            app_home = config["app_home"],
             python_version  = config["version"]['python2'],
             R_version = config["version"]['R'],
             bowtie_version = config["version"]['bowtie'],
@@ -185,7 +156,7 @@ rule HLAminer:
     version:
             config["version"]["HLAminer"]
     params:
-            app_home = config["common"]["app_home"],
+            app_home = config["app_home"],
             rulename="HLAminer",
             log_dir = lambda wildcards: wildcards.sample + '/log',
             batch=config["cluster"]["job_hlaminer"],

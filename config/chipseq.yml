@@ -1,31 +1,16 @@
-common:
-    pipeline_version: "v0.1"
-    emails: " -c chouh@nih.gov"
-    FASTQ_prefix: "Sample_"
-    FASTQ_suffix_R1: "_R1.fastq.gz"
-    FASTQ_suffix_R2: "_R2.fastq.gz"
-    FASTQ_suffix_SE: "_R1.fastq.gz"
-    app_home: "/data/khanlab/apps"    
-cluster:
-    small: "--partition=quick,norm    --time=03:00:00 --mem=08G  --cpus-per-task=1   --gres=lscratch:05"
-    subflow: "--partition=quick,norm    --time=2-00:00:00 --mem=08G  --cpus-per-task=1   --gres=lscratch:05"
-    medium: "--partition=ccr,norm    --time=24:00:00 --mem=32G  --cpus-per-task=8  --gres=lscratch:05"
-    large: "--partition=ccr,norm    --time=24:00:00 --mem=120G  --cpus-per-task=24  --gres=lscratch:05"
+cluster:    
     job_bwa: "--partition=ccr,norm --time=10:00:00 --mem=80G  --cpus-per-task=40  --gres=lscratch:200"
     job_macs2: "--partition=ccr,norm --time=10:00:00 --mem=32G  --cpus-per-task=1  --gres=lscratch:100"
     job_rose: "--partition=ccr,norm --time=20:00:00 --mem=32G  --cpus-per-task=1  --gres=lscratch:100"
     job_motif: "--partition=ccr,norm --time=10:00:00 --mem=48G  --cpus-per-task=24  --gres=lscratch:100"
 version:
-    bwa: "0.7.17"
-    samtools: "1.9"
-    picard: "2.22.2"
+    bwa: "0.7.17"    
     macs: "2.2.6"
     deeptools: "3.4.2"
     igvtools: "2.8.2"
-    R: "4.0.0"
     homer: "4.11.1"
     rose: "20200707"
-    snakemake: "5.13.0"
+    bamliquidator: "1.3.8"
 hg38:
     bwa_index: "/data/Clinomics/Ref/khanlab/Index/BWAIndex/hg38"
     black_list: ref/ENCFF356LFX.bed
@@ -54,9 +39,11 @@ default_lib_length: 148
 min_mapq: "30"
 bin_size: "25"
 smooth_size: "75"
+dup_cutoff: 0.3
 macs2:
     peak_types: ["narrow","broad"]
-    qvalues: ["0.05","0.01"]
+    pvalues: [0.0000001, 0.00000000001]
+    qvalues: [0.01,0.001]
 rose:
     tss_distance: 2500
     stitch_distance: 12500

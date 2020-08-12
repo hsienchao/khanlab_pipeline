@@ -68,7 +68,7 @@ MAX_INSERT_SIZE = 600
 ## Hi-C processing
 #######################################################################
 
-MIN_CIS_DIST =
+MIN_CIS_DIST = 2000
 GET_ALL_INTERACTION_CLASSES = 1
 GET_PROCESS_SAM = 1
 RM_SINGLETON = 1
