@@ -16,7 +16,7 @@ version_common:
     python3: "3.6"
     picard: "2.22.2"
     snakemake: "5.13.0"
-    sigularity: "3.6.1"
+    sigularity: "3.6.4"
 cluster_common:
     small: "--partition=quick,norm    --time=03:00:00 --mem=08G  --cpus-per-task=1   --gres=lscratch:05"
     subflow: "--partition=quick,norm    --time=2-00:00:00 --mem=08G  --cpus-per-task=1   --gres=lscratch:05"

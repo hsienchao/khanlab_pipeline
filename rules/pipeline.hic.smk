@@ -40,7 +40,8 @@ try:
         if not "Genome" in sample:
             raise Exception('Genome not found in sample sheet')
         ref_genome = sample["Genome"]
-        if "SpikeIn" in sample and sample["SpikeIn"] == "yes":
+        if "SpikeIn" in sample and (sample["SpikeIn"] == "yes" or sample["SpikeIn"] == True):
+            print("We have SpikeIn\n")
             #only add script targets once
             if len(HICPRO_SCRIPTS) == 0:
                 if not "SpikeInGenome" in sample:
@@ -51,6 +52,8 @@ try:
             PAIRS[sample_id].append(sample_id + "//HiCproOUTPUT." + spike_in_genome + "/hic_results/data/" + sample_id + "/" + sample_id + "_" + config[spike_in_genome]["bowtie2_index"] + ".bwt2pairs.validPairs")
             MERGED_PAIRS.append(sample_id + "/HiCproOUTPUT." + spike_in_genome + "/hic_results/data/" + sample_id + "/" + sample_id + ".allValidPairs")
             MERGE_STATS[sample_id].append(sample_id + "/HiCproOUTPUT." + spike_in_genome + "/hic_results/stats/" + sample_id + "/" + sample_id + "_allValidPairs.mergestat")
+        else:
+            print("We have no SpikeIn\n")
         HICPRO_SCRIPTS.append(sample_id + "/HiCproOUTPUT." + ref_genome + "/HiCPro_step1_" + ref_genome + "_HiCpro.sh")
         HICPRO_SCRIPTS.append(sample_id + "/HiCproOUTPUT." + ref_genome + "/HiCPro_step2_" + ref_genome + "_HiCpro.sh")
         PAIRS[sample_id].append(sample_id + "/HiCproOUTPUT." + ref_genome + "/hic_results/data/" + sample_id + "/" + sample_id + "_" + config[ref_genome]["bowtie2_index"] + ".bwt2pairs.validPairs")
