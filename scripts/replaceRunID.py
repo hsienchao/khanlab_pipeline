@@ -53,7 +53,7 @@ def main(args):
                 ws_run_id = ws.cell(row=i+1, column=run_id_idx).value
                 if ws_run_id != None:
                     if ws_run_id.strip() == "TBD":
-                        print(ws_lib_id + "\t" + run_id)
+                        print(ws_lib_id + "\t" + ws_run_id + "\t" + run_id)
                         #print("replace TBD of " + ws_lib_id + " with " + run_id)
                         runs[str(i+1)] = run_id
     #print(lib_id_idx)
@@ -62,8 +62,11 @@ def main(args):
     xfile = openpyxl.load_workbook(args.input.strip())
     ws= xfile.worksheets[0]
     for i in runs:
+        print("saving " + str(i))
         ws.cell(row=int(i), column=run_id_idx).value = runs[i]
-        #print(i + " " + runs[i])
+    #for i in range(ws.max_row):
+    #    ws.cell(row=i+1, column=run_id_idx).number_format = '@'
+    #print(i + " " + runs[i])
         
     xfile.save(input_file)
     xfile.close()

@@ -3,8 +3,8 @@
 cluster:
     job_xenofilter: "--partition=ccr,norm --time=10:00:00 --mem=80G  --cpus-per-task=2  --gres=lscratch:200"
     job_xenome: "--partition=ccr,norm --time=24:00:00 --mem=100G  --cpus-per-task=16  --gres=lscratch:200"
-    job_xengsort: "--partition=ccr,norm --time=24:00:00 --mem=80G  --cpus-per-task=30  --gres=lscratch:800"
-    job_star: "--partition=ccr,norm --time=30:00:00 --mem=200G  --cpus-per-task=30  --gres=lscratch:800"
+    job_xengsort: "--partition=ccr,norm --time=24:00:00 --mem=80G  --cpus-per-task=30  --gres=lscratch:300"
+    job_star: "--partition=ccr,norm --time=30:00:00 --mem=200G  --cpus-per-task=30  --gres=lscratch:300"
     job_rsem: "--partition=ccr,norm --time=10:00:00 --mem=200G  --cpus-per-task=30  --gres=lscratch:400"
     job_seq2hla: "--partition=ccr,norm    --time=24:00:00 --mem=32G  --cpus-per-task=8  --gres=lscratch:05"
     job_hlaminer: "--partition=ccr,norm    --time=24:00:00 --mem=32G  --cpus-per-task=8  --gres=lscratch:05"

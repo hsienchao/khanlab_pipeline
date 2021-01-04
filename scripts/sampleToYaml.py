@@ -25,8 +25,9 @@ def main(args):
     default_genome="hg19"
     xeno_genome="mm10"
     #columns = ["Type of sequencing","Matched normal","Matched RNA-seq"]
+    
     for master_file in master_files:
-        file = masterfile_dir + "/" + master_file        
+        file = masterfile_dir + "/" + master_file
         master_df = pd.read_csv(file, sep='\t', encoding = "ISO-8859-1")
         master_df['Sample_ID'] = master_df['Library ID'] + '_' + master_df['FCID']
         master_df = master_df.loc[master_df['Sample_ID'] == sample_id]
@@ -37,9 +38,9 @@ def main(args):
             break
     if 'Sample_ID' not in master_sample.keys():
         print(sample_id + " not found in Khanlab master files\n")
-        sys.exit(1)
+        sys.exit(1)    
     #HiC sample
-    if master_sample["Type of sequencing"] == "H-il":
+    if "H-il" in master_sample["Type of sequencing"]:        
         df = pd.read_excel(hic_master_file)
         df = df.loc[df['Amplified_Sample_Library_Name'] == master_sample['Library ID']]
         df = df.reset_index(drop=True)
@@ -55,7 +56,7 @@ def main(args):
         #else:
         #    sys.stderr.write(sample_id + " not found in Khanlab master files\n")
     #ChIPseq sample
-    if master_sample["Type of sequencing"] == "C-il" and 'Amplified_Sample_Library_Name' not in sample:
+    if "C-il" in master_sample["Type of sequencing"] and 'Amplified_Sample_Library_Name' not in sample:
         df = pd.read_excel(chipseq_master_file)
         df = df.loc[df['Amplified_Sample_Library_Name'] == master_sample['Library ID']]
         df = df.reset_index(drop=True)
@@ -77,7 +78,7 @@ def main(args):
             print(sample["Genome"])
         else:
             sys.stderr.write(sample_id + " not found in HiC/Chipseq master files\n")
-    if 'Amplified_Sample_Library_Name' not in sample:
+    if "T-il" in master_sample["Type of sequencing"] and 'Amplified_Sample_Library_Name' not in sample:
        if "SampleRef" in master_sample:
             master_sample["Genome"] = master_sample["SampleRef"]
             del master_sample["SampleRef"]

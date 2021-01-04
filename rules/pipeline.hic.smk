@@ -77,7 +77,7 @@ except Exception as err:
 
 TARGETS = MERGED_PAIRS+JUICEBOX_OUT+MERGE_STATS_SUMMARY+FASTQCS+FITHICHIP_OUT+PEAKACHU_OUT
 
-localrules: HiCPro, prepareFASTQ, HiC_pipeline, mergeStats
+localrules: all, HiCPro, prepareFASTQ, mergeStats
 #print(HICPRO_SCRIPTS,MERGED_PAIRS,JUICEBOX_OUT,MERGE_STATS_SUMMARY)
 
 include: "hicpro.smk"
