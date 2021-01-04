@@ -64,7 +64,7 @@ except Exception as err:
     
 TARGETS = BAMS + HLA + RSEM
 
-localrules: prepareFASTQ, RNAseq_pipeline, MergeHLA
+localrules: all, prepareFASTQ, MergeHLA
 
 rule RSEM:
     input:
@@ -131,8 +131,8 @@ rule seq2HLA:
             rulename= "seq2HLA",
             log_dir = lambda wildcards: wildcards.sample + '/log',
             app_home = config["app_home"],
-            python_version  = config["version"]['python2'],
-            R_version = config["version"]['R'],
+            python_version  = config["version_common"]['python2'],
+            R_version = config["version_common"]['R'],
             bowtie_version = config["version"]['bowtie'],
             batch = config["cluster"]["job_seq2hla"],
             hla=lambda wildcards: config[samples[wildcards.sample]["Genome"]]["hla_ref"],

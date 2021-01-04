@@ -123,7 +123,7 @@ except Exception as err:
     
 TARGETS = FASTQCS + BAMS + BWS + TDFS + SPP + MACS2 + ANNOTATION + ROSE + MOTIFS + EDENS + RNAseq + COLTRONS
 
-localrules: prepareFASTQ, ChIPseq_pipeline, EDEN, prepareSummit, prepareRoseSummit
+localrules: all, prepareFASTQ, EDEN, prepareSummit, prepareRoseSummit
 
 rule RNAseq_pipeline:
     input:
