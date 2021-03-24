@@ -18,6 +18,8 @@ my $dryrun;
 my $local;
 my $dag;
 my $help;
+my $walltime = "4-00:00:00";
+my $partition = "ccr,norm";
 
 #$pipeline_home = readpipe()
 #if (`dirname $0` =~ /^\./){
@@ -34,7 +36,7 @@ $0 [options]
 
 required options:
 
-  -type|t     <string>  Pipeline type (available options: hic,chipseq,ranseq,dnaseq)
+  -type|t     <string>  Pipeline type (available options: hic,chipseq,ranseq,pacbio,dnaseq)
   -workdir|w  <string>  Working directory where all the results will be stored.
   -sheet|s    <string>  Sample sheet in YAML format
   -genome|g   <string>  Genome version (default: $genome)
@@ -44,6 +46,8 @@ optional options:
   -dryrun               Dryrun only
   -local                Run snakemake locally
   -dag                  Generate DAG PDF
+  -walltime   <string>  Main workflow walltime (default: $walltime)
+  -partition  <string>  Main workflow partition (default: $partition)
 
 Example
   
@@ -55,6 +59,8 @@ __EOUSAGE__
 
 GetOptions(
 		'dryrun'        =>\$dryrun,
+		'walltime|l=s'        =>\$walltime,
+		'partition|p=s'        =>\$partition,
 		'local'         =>\$local,
 		'dag'           =>\$dag,
 		'type|t=s'      =>\$type,
@@ -71,12 +77,12 @@ if ($help) {
 }
 
 
-if (!$type || ($type ne "hic" && $type ne "chipseq" && $type ne "rnaseq" && $type ne "dnaseq")){
+if (!$type || ($type ne "hic" && $type ne "chipseq" && $type ne "rnaseq" && $type ne "dnaseq" && $type ne "pacbio")){
 	print STDERR "ERROR: must specify '-type'\n";
-	print STDERR "\t Possible values are: hic,chipseq,ranseq,dnaseq\n";
+	print STDERR "\t Possible values are: hic,chipseq,ranseq,pacbio,dnaseq\n";
 	exit;
 }
-if ($type ne "hic" && $type ne "rnaseq" && $type ne "chipseq") {
+if ($type eq "dnaseq") {
 	print STDERR "$type not implemented yet";
 	exit;
 }
@@ -116,11 +122,12 @@ if ($dryrun){
 else{
 	system("mkdir -p $work_dir/log");
 	system("chmod g+rw $work_dir/log");
+	my $batch_option = "--cpus-per-task=1 --mem=8G --partition=$partition --time=$walltime";
 	$snake_command = $snake_command." --jobname {params.rulename}.{jobid} --nolock  --ri -k -p -r -j 1000 --cores 150 --jobscript $pipeline_home/scripts/jobscript.sh --cluster \"sbatch -o {params.log_dir}/{params.rulename}.%j.o -e {params.log_dir}/{params.rulename}.%j.e {params.batch}\"";
 	if ($local) {
 		system($snake_command);
 	} else {
-		$jobid = readpipe("module load snakemake/5.13.0;sbatch -J ${type}_pipeline -e $work_dir/log/pipeline.$type.${sheet_name}_${now}.%j.e -o $work_dir/log/pipeline.$type.${sheet_name}_${now}.%j.o --cpus-per-task=1 --mem=8G --partition=ccr,norm --time=4-00:00:00 $snake_command");
+		$jobid = readpipe("module load snakemake/5.13.0;sbatch -J ${type}_pipeline -e $work_dir/log/pipeline.$type.${sheet_name}_${now}.%j.e -o $work_dir/log/pipeline.$type.${sheet_name}_${now}.%j.o $batch_option $snake_command");
 	}
 }
 

@@ -3,6 +3,7 @@ try:
     FASTQS = {}
     BAMS = []
     RSEM= []
+    STRINGTIE=[]
     HLA= []
 
     for sample_id, sample in samples.items():
@@ -50,6 +51,9 @@ try:
             BAMS.append(sample_id + "/STAR_" + sample["Genome"] + "_" + annotation + "/" + sample_id + "." + sample["Genome"] + "." + annotation + ".star.trans.bam")
             RSEM.append(sample_id + "/RSEM_" + sample["Genome"] + "_" + annotation + "/" + sample_id + "." + sample["Genome"] + "." + annotation + ".genes.results")
             RSEM.append(sample_id + "/RSEM_" + sample["Genome"] + "_" + annotation + "/" + sample_id + "." + sample["Genome"] + "." + annotation + ".isoforms.results")
+            STRINGTIE.append(sample_id + "/StringTie_" + sample["Genome"] + "_" + annotation + "/" + sample_id + "." + sample["Genome"] + "." + annotation + ".stringtie.gtf")
+            STRINGTIE.append(sample_id + "/StringTie_" + sample["Genome"] + "_" + annotation + "/" + sample_id + "." + sample["Genome"] + "." + annotation + ".stringtie.tab")
+            f="{sample}/StringTie_{genome}_{annotation}/{sample}.{genome}.{annotation}.stringtie.gtf",
         HLA.append(sample_id + "/HLA/" + sample_id + ".Calls.txt")
         
 except Exception as err:
@@ -62,7 +66,7 @@ except Exception as err:
     shell("echo 'RNAseq pipeline has exception: reason " + contents + ". Working Dir:  {work_dir}' |mutt -e 'my_hdr From:chouh@nih.gov' -s 'Khanlab RNAseq Pipeline Status' `whoami`@mail.nih.gov {emails} ")
     sys.exit()
     
-TARGETS = BAMS + HLA + RSEM
+TARGETS = BAMS + HLA + RSEM + STRINGTIE
 
 localrules: all, prepareFASTQ, MergeHLA
 
@@ -93,7 +97,7 @@ rule RSEM:
             mkdir -p {params.work_dir}/{wildcards.sample}/RSEM_{wildcards.genome}_{wildcards.annotation}
             mv -f {wildcards.sample}_{wildcards.annotation}.genes.results {params.work_dir}/{wildcards.sample}/RSEM_{wildcards.genome}_{wildcards.annotation}/{wildcards.sample}.{wildcards.genome}.{wildcards.annotation}.genes.results
             mv -f {wildcards.sample}_{wildcards.annotation}.isoforms.results {params.work_dir}/{wildcards.sample}/RSEM_{wildcards.genome}_{wildcards.annotation}/{wildcards.sample}.{wildcards.genome}.{wildcards.annotation}.isoforms.results
-	"""
+            """
 
 rule XenofilteR:
     input:
@@ -188,6 +192,34 @@ rule MergeHLA:
         export LC_ALL=C
         perl {params.script} {input.B} {input.A} | sort > {output}
         """
+
+rule StringTie:
+    input:
+            "{sample}/STAR_{genome}_{annotation}/{sample}.{genome}.{annotation}.star.genome.bam",
+    output: 
+            gtf="{sample}/StringTie_{genome}_{annotation}/{sample}.{genome}.{annotation}.stringtie.gtf",
+            tab="{sample}/StringTie_{genome}_{annotation}/{sample}.{genome}.{annotation}.stringtie.tab",
+    version:
+            config["version"]["stringtie"]
+    params:
+            work_dir = config["work_dir"],
+            batch    = config["cluster"]["job_stringtie"],
+            rulename = "StringTie",
+            strandness = lambda wildcards: "--rf" if samples[wildcards.sample]['SampleCaptures'] != "polya" else "",
+            ref_gtf = lambda wildcards: config[wildcards.genome]["gtf_" + wildcards.annotation],
+            log_dir = lambda wildcards: wildcards.sample + '/log',
+    benchmark:
+            "{sample}/benchmark/stringtie.{sample}.{genome}.{annotation}.benchmark.txt"
+    shell:
+            """
+            module load stringtie/{version} samtools
+            mkdir -p {wildcards.sample}/StringTie_{wildcards.genome}_{wildcards.annotation}
+            num_cores=$SLURM_CPUS_ON_NODE
+            echo $num_cores
+            echo ${{THREADS}}
+            stringtie {input} -p ${{THREADS}} -o {output.gtf} -G {params.ref_gtf} -A {output.tab} {params.strandness}
+            """
+
     
 rule STAR:
     input:
@@ -225,6 +257,7 @@ rule STAR:
                     --outFilterMismatchNmax 2\
                     --outSAMunmapped Within \
                     --quantMode TranscriptomeSAM \
+                    --outSAMattrIHstart 0 \
                     --outSAMattributes NM
             echo "Finished STAR twopass mapping"
             mkdir -p {wildcards.sample}/STAR_{wildcards.genome}.{wildcards.annotation}
@@ -237,8 +270,8 @@ rule STAR:
             fn="${{outf%.bam}}"
             samtools flagstat {params.work_dir}/{output.genome_bam} > $fn.flagstat.txt
             samtools flagstat {params.work_dir}/{output.trans_bam} > {params.work_dir}/{output.trans_bam}.flagstat.txt
-            module load deeptools
-            bamCoverage -b {params.work_dir}/{output.genome_bam} -o $fn.bw
+            #module load deeptools
+            #bamCoverage -b {params.work_dir}/{output.genome_bam} -o $fn.bw
             """
             
 rule xenome_se:

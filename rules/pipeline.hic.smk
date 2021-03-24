@@ -24,6 +24,8 @@ try:
         if not "SampleFiles" in sample:
             raise Exception('SampleFiles not found in sample sheet')
         sample_file = sample["SampleFiles"]
+        if not "Trim" in sample:
+            sample["Trim"] = "."
         if sample["Trim"] != ".":
             FASTQS[sample_id].append(sample_id + "/DATA/" + sample_id + '/' + sample_id + ".trimmed" + suffix_R1)
             FASTQS[sample_id].append(sample_id + "/DATA/" + sample_id + '/' + sample_id + ".trimmed" + suffix_R2)
@@ -45,7 +47,8 @@ try:
             #only add script targets once
             if len(HICPRO_SCRIPTS) == 0:
                 if not "SpikeInGenome" in sample:
-                    raise Exception('SpikeInGenome not found in sample sheet')
+                    sample["SpikeInGenome"] = "mm10"
+                    #raise Exception('SpikeInGenome not found in sample sheet')
                 spike_in_genome = sample["SpikeInGenome"]
                 HICPRO_SCRIPTS.append(sample_id + "/HiCproOUTPUT." + spike_in_genome + "/HiCPro_step1_" + spike_in_genome + "_HiCpro.sh")
                 HICPRO_SCRIPTS.append(sample_id + "/HiCproOUTPUT." + spike_in_genome + "/HiCPro_step2_" + spike_in_genome + "_HiCpro.sh")

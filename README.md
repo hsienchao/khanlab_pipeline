@@ -6,7 +6,8 @@ Khanlab pipeline supports the following NGS data types:
 1. [HiC](#headHiC)
 2. [RNAseq](#headRNAseq)
 3. [ChIPseq](#headChIPseq)
-4. DNAseq
+4. [Pacbio](#headPacbio)
+5. DNAseq
 
 ## Installation
 
@@ -43,6 +44,11 @@ SLURM resource management
 - xengsort
 - HLAminer
 - seq2HLA
+
+### Pacbio:
+- Isoseq3
+- cDNA_cupcake
+- sqanti3
 
 ## Conventions
 
@@ -359,6 +365,37 @@ samples:
 
 ##### DAG example for Xenograft samples
 ![alt tag](dag.rnaseq.xeno.svg)
+
+## <a name="headPacbio"></a>Pacbio
+
+#### Pacbio sample_sheet
+
+##### columns
+
+1. Genome (hg19,hg38,mm10)
+2. SampleFiles
+3. Target. Format: chromosome:start-end. Empty if the library is whole transcriptome
+4. Primers. Primer fasta file if your primers are different from standard one.
+
+
+#### <a name="expPacbio"></a>Pacbio Example:
+```
+samples:
+  RH30:
+    Amplified_Sample_Library_Name: RH30
+    SampleFiles: Sample_RH30/RH30.ccs.bam
+    Target: chr5:177086905-177098144
+	Genome: hg19
+    Primers: /data/khanlab3/hsienchao/Adam/FGFR4/CS28601_R2/A01/primers.fasta
+```
+#### Output
+1. Sqanti classification file: [output dir]/[sample_id].sqanti_classification.filtered_lite_classification.txt
+2. Final GTF: [output dir]/[sample_id].sqanti_classification.filtered_lite.gtf
+
+#### Dependency graph
+
+##### DAG example with spike-In
+![alt tag](dag.pacbio.svg)
 
 ### DNAseq
 Not implemented yet.

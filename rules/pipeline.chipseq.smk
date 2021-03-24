@@ -19,6 +19,17 @@ try:
         SAMPLES.append(sample_id)
         FASTQS[sample_id] = []
         MACS_BAMS[sample_id] = []
+        #add default values
+        if not "PeakCalling" in sample:
+            sample["PeakCalling"] = "narrow"
+        if not "LibrarySize" in sample:
+            sample["LibrarySize"] = "."
+        if not "PairedRNA_SAMPLE_ID" in sample:
+            sample["PairedRNA_SAMPLE_ID"] = "."
+        if not "PairedInput" in sample:
+            sample["PairedInput"] = "."
+        if not "EnhancePipe" in sample:
+            sample["EnhancePipe"] = "no"
         #add FASTQ targets
         if not "SampleFiles" in sample:
             raise Exception('SampleFiles not found in sample sheet')
@@ -48,7 +59,7 @@ try:
         else:
             sample["SpikeIn"] == "no"
             sample["SpikeInGenome"] == ""
-        if samples[sample_id]["LibrarySize"] == ".":
+        if not "LibrarySize" in sample or samples[sample_id]["LibrarySize"] == ".":
             samples[sample_id]["LibrarySize"] = config["default_lib_length"]
         BAMS.append(sample_id + "/" + sample_id + ".bam")        
         MACS_BAMS[sample_id].append(sample_id + "/" + sample_id + ".bam")

@@ -1,0 +1,46 @@
+%YAML 1.2
+---
+apps:
+    sqanti3_path: "/data/Clinomics/apps/sqanti3"
+    cdna_cupcake_sif: "/data/Clinomics/apps/cdna_cupcake/cdna_cupcake_latest.sif"
+    polya: "/data/Clinomics/apps/sqanti3/polyA.list"
+cluster:
+    targeted:
+        job_lima: "--partition=ccr,quick --time=4:00:00 --mem=16G  --cpus-per-task=1"
+        job_refine: "--partition=ccr,quick --time=4:00:00 --mem=32G  --cpus-per-task=16"
+        job_cluster: "--partition=ccr,quick --time=4:00:00 --mem=48G  --cpus-per-task=16"
+        job_sqanti3: "--partition=ccr,quick --time=4:00:00 --mem=60G  --cpus-per-task=16"
+        job_sort: "--partition=ccr,quick --time=4:00:00 --mem=60G  --cpus-per-task=16"
+        job_minimap2: "--partition=ccr,quick --time=4:00:00 --mem=60G  --cpus-per-task=16"
+        job_cdna_cupcake: "--partition=ccr,quick --time=4:00:00 --mem=60G  --cpus-per-task=16"
+        job_short: "--partition=ccr,quick --time=4:00:00 --mem=16G  --cpus-per-task=1"
+    transcriptome:
+        job_lima: "--partition=ccr,norm --time=6:00:00 --mem=16G  --cpus-per-task=1"
+        job_refine: "--partition=ccr,norm --time=6:00:00 --mem=32G  --cpus-per-task=16"
+        job_cluster: "--partition=ccr,norm --time=24:00:00 --mem=100G  --cpus-per-task=16"
+        job_sqanti3: "--partition=ccr,norm --time=12:00:00 --mem=60G  --cpus-per-task=16"
+        job_sort: "--partition=ccr,norm --time=12:00:00 --mem=60G  --cpus-per-task=16"
+        job_minimap2: "--partition=ccr,norm --time=12:00:00 --mem=60G  --cpus-per-task=16"
+        job_cdna_cupcake: "--partition=ccr,norm --time=10:00:00 --mem=60G  --cpus-per-task=16"
+        job_short: "--partition=ccr,norm --time=6:00:00 --mem=16G  --cpus-per-task=1"
+version:
+    python: "3.7"
+    minimap2: "2.17"
+    samtools: "1.11"
+    smrtanalysis: "9.0.0.92188"
+annotations:
+    - gencode
+hg38:
+    cage_peak: "/data/Clinomics/apps/sqanti3/hg38.cage_peak_phase1and2combined_coord.bed"
+    gtf_gencode: "/data/Clinomics/Ref/khanlab/GTF/gencode.v32.annotation.gtf"
+    bed_gencode: "/data/Clinomics/Ref/khanlab/GTF/gencode.v32.annotation.bed"
+    ref: "/data/Clinomics/Ref/khanlab/GRCh38.primary_assembly.genome.fa"
+    gtf_ucsc: "/data/Clinomics/Ref/khanlab/GTF/ucsc_hg38.gtf"
+    
+hg19:
+    gtf_gencode: "/data/Clinomics/Ref/khanlab/GTF/gencode.v19.annotation.gtf"    
+
+mm10:
+    gtf_gencode: "/data/Clinomics/Ref/khanlab/GTF/Mus_musculus.GRCm38.83.gtf"    
+
+
