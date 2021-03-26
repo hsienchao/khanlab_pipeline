@@ -4,6 +4,8 @@ apps:
     sqanti3_path: "/data/Clinomics/apps/sqanti3"
     cdna_cupcake_sif: "/data/Clinomics/apps/cdna_cupcake/cdna_cupcake_latest.sif"
     polya: "/data/Clinomics/apps/sqanti3/polyA.list"
+    conda_home: "/data/khanlab/projects/hsienchao/conda"
+    conda_env: "SQANTI3.env"
 cluster:
     targeted:
         job_lima: "--partition=ccr,quick --time=4:00:00 --mem=16G  --cpus-per-task=1"
@@ -32,6 +34,7 @@ annotations:
     - gencode
 hg38:
     cage_peak: "/data/Clinomics/apps/sqanti3/hg38.cage_peak_phase1and2combined_coord.bed"
+    ref_path: "/data/Clinomics/Ref/khanlab"
     gtf_gencode: "/data/Clinomics/Ref/khanlab/GTF/gencode.v32.annotation.gtf"
     bed_gencode: "/data/Clinomics/Ref/khanlab/GTF/gencode.v32.annotation.bed"
     ref: "/data/Clinomics/Ref/khanlab/GRCh38.primary_assembly.genome.fa"
